@@ -9,7 +9,11 @@ if (file_exists($envFile)) {
         if ($line === '' || str_starts_with($line, '#')) {
             continue;
         }
-
+      //ifosfisf
+    //sifjosjf
+    //sifjosjfsiofoisf
+    //sifjosjfsiofoisf
+    //
         [$key, $value] = explode('=', $line, 2);
         $key = trim($key);
         $value = trim($value);

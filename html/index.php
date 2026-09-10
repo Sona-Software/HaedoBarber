@@ -1,6 +1,6 @@
 <?php
 require_once '../config/session_check.php';
-
+// Hola fisjfosij
 try {
     $sqlServicios = "SELECT *
                      FROM servicios
