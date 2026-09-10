@@ -29,6 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    /* Jpppñalspafpaof
+     * apofjpaosjf
+     * apofjpaosjfaijfjaf
+     * a
+     * apofjpaosjfaijfjaf
+     * smoothsfas
+     */
 
     animateEls.forEach(el => {
       el.style.opacity = '0';
