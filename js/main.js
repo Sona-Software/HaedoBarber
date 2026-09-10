@@ -77,6 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
           input.classList.remove('is-invalid');
         }
       });
+      // Nuevos @packageDocumentation
+      // Codasad 
+      // soifsoijfi
+      // apofjpaosjfaijfjaf
+      // soifsoijfi
+      //
       if (!valid) {
         e.preventDefault();
         e.stopPropagation();
