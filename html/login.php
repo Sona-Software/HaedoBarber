@@ -26,11 +26,20 @@
     <div class="auth-card">
 
       <!-- Encabezado -->
+      <!-- Encabezado -->
+      <!-- Encabezado -->
+      <!-- Encabezado -->
+      <!-- Encabezado -->
+      <!-- Encabezado -->
+      <!-- Encabezado -->
       <div class="mb-4">
         <p class="section-eyebrow mb-1">Bienvenido de vuelta</p>
         <h1 class="auth-title">INGRESAR</h1>
       </div>
 
+      <!-- Mensaje de error PHP (placeholder) -->
+      <!-- Mensaje de error PHP (placeholder) -->
+      <!-- Mensaje de error PHP (placeholder) -->
       <!-- Mensaje de error PHP (placeholder) -->
       <?php
           $error = $_GET['error'] ?? '';
