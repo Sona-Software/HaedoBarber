@@ -28,20 +28,20 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contacto | Blest Barber Shop</title>
-  <link rel="icon" type="image/jpg" href="../img/logo.jpg">
+  <title>Contacto | Haedo Barber</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top scrolled" id="mainNav">
   <div class="container">
     <a class="navbar-brand" href="index.php">
-      <span class="brand-el">BLEST</span><span class="brand-filo"> BARBER</span>
+      <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
     </a>
 
     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu">
@@ -283,8 +283,8 @@ try {
             <li style="display:flex;gap:14px;align-items:flex-start">
               <i class="bi bi-telephone-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0"></i>
               <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Teléfono</p>
-                <p style="color:var(--muted);font-size:13px;margin:0">+54 9 11 5126-7271</p>
+                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">WhatsApp</p>
+                <?php if (!empty($_ENV['WHATSAPP_URL'])): ?><p style="color:var(--muted);font-size:13px;margin:0"><a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>">Escribinos por WhatsApp</a></p><?php else: ?><p style="color:var(--muted);font-size:13px;margin:0">Próximamente</p><?php endif; ?>
               </div>
             </li>
 
@@ -292,21 +292,21 @@ try {
               <i class="bi bi-envelope-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0"></i>
               <div>
                 <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Email</p>
-                <p style="color:var(--muted);font-size:13px;margin:0">Juancruzargentina05@gmail.com</p>
+                <p style="color:var(--muted);font-size:13px;margin:0"><?php echo !empty($_ENV['CONTACT_EMAIL']) ? htmlspecialchars($_ENV['CONTACT_EMAIL']) : 'Contacto mediante formulario'; ?></p>
               </div>
             </li>
           </ul>
         </div>
 
-        <div style="border:1px solid var(--border);overflow:hidden">
+        <?php if (!empty($_ENV['GOOGLE_MAPS_EMBED_URL'])): ?><div style="border:1px solid var(--border);overflow:hidden">
           <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6563.950157699876!2d-58.5205734!3d-34.6553323!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcc9d73f385841%3A0x61822e73afb4fcd4!2sBlest%20Barber%20Shop%20Na%C3%B3n!5e0!3m2!1ses-419!2sar!4v1781283831807!5m2!1ses-419!2sar"
+            src="<?php echo htmlspecialchars($_ENV['GOOGLE_MAPS_EMBED_URL'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
             width="100%" height="280"
             style="border:0;display:block;filter:grayscale(80%) contrast(1.1) brightness(0.6)"
             allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-            title="Ubicación Blest Barber Shop">
+            title="Ubicación Haedo Barber">
           </iframe>
-        </div>
+        </div><?php endif; ?>
       </div>
 
     </div>
@@ -319,15 +319,13 @@ try {
 
       <div class="col-lg-4">
         <div class="footer-brand">
-          <span class="brand-el">BLEST</span><span class="brand-filo"> BARBER</span>
+          <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
         </div>
 
         <p class="footer-tagline">El arte del filo, la precisión del corte.</p>
 
         <div class="footer-social">
-          <a href="https://www.instagram.com/blestbarbershop/" target="_blank" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
-          <a href="https://www.tiktok.com/@blestbarbershop00" target="_blank" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
-          <a href="https://api.whatsapp.com/send/?phone=5491151267271" target="_blank" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+          <?php foreach (['INSTAGRAM_URL' => 'instagram', 'TIKTOK_URL' => 'tiktok', 'WHATSAPP_URL' => 'whatsapp'] as $key => $icon): if (!empty($_ENV[$key])): ?><a href="<?php echo htmlspecialchars($_ENV[$key], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo ucfirst($icon); ?>"><i class="bi bi-<?php echo $icon; ?>"></i></a><?php endif; endforeach; ?>
         </div>
       </div>
 
@@ -405,7 +403,7 @@ try {
     </div>
 
     <div class="footer-bottom">
-      <p>© 2026 Blest Barber Shop · Todos los derechos reservados</p>
+      <p>© 2026 Haedo Barber · Todos los derechos reservados</p>
     </div>
   </div>
 </footer>
@@ -439,6 +437,6 @@ try {
   }
 </script>
 
-<script src="../js/main.js"></script>
+<script src="assets/js/main.js"></script>
 </body>
 </html>

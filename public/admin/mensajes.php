@@ -40,11 +40,11 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mensajes | Panel Admin</title>
 
-  <link rel="icon" type="image/jpg" href="../../img/logo.jpg?v=1.0">
+  <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 
 <body>
@@ -54,7 +54,7 @@ try {
     <aside class="admin-sidebar">
       <div>
         <div class="admin-brand">
-          <span class="brand-el">BLEST</span><span class="brand-filo"> BARBER</span>
+          <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
         </div>
 
         <nav class="admin-menu">
@@ -203,7 +203,7 @@ try {
                             </button>
 
                             <a
-                            href="mailto:<?php echo htmlspecialchars($mensaje["email"]); ?>?subject=Respuesta%20Blest%20Barber%20Shop"
+                            href="mailto:<?php echo htmlspecialchars($mensaje["email"]); ?>?subject=Respuesta%20Haedo%20Barber"
                             class="btn btn-gold btn-sm">
                             Responder
                             </a>
@@ -256,7 +256,7 @@ try {
 
                     <div class="modal-footer">
                         <a 
-                        href="mailto:<?php echo htmlspecialchars($mensaje["email"]); ?>?subject=Respuesta%20Blest%20Barber%20Shop"
+                        href="mailto:<?php echo htmlspecialchars($mensaje["email"]); ?>?subject=Respuesta%20Haedo%20Barber"
                         class="btn btn-gold">
                         Responder por email
                         </a>

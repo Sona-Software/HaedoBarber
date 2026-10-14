@@ -1,0 +1,11 @@
+Options -Indexes
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(config|database|libs|scripts|services)(/|$) - [F,NC,L]
+    RewriteRule ^test_connection\.php$ - [F,NC,L]
+</IfModule>

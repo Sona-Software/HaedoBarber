@@ -53,7 +53,7 @@ try {
 
   <title>Servicios | Panel Admin</title>
 
-  <link rel="icon" type="image/jpg" href="../../img/logo.jpg?v=1.0">
+  <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
 
@@ -64,7 +64,7 @@ try {
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
   <link rel="stylesheet"
-        href="../../css/style.css">
+        href="../assets/css/style.css">
 </head>
 
 <body>
@@ -75,7 +75,7 @@ try {
     <div>
 
       <div class="admin-brand">
-        <span class="brand-el">BLEST</span>
+        <span class="brand-el">HAEDO</span>
         <span class="brand-filo"> BARBER</span>
       </div>
 

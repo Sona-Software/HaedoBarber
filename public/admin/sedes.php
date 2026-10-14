@@ -59,9 +59,11 @@ try {
 
 function obtenerRutaFotoSede($foto) {
     if (empty($foto)) {
-        return "../../img/default-sede.webp";
+        return "../assets/img/haedobarber-mark.svg";
     }
 
+    if (str_starts_with($foto, "img/")) return "../assets/" . substr($foto, 4);
+    if (str_starts_with($foto, "assets/")) return "../" . $foto;
     return "../../" . $foto;
 }
 ?>
@@ -75,7 +77,7 @@ function obtenerRutaFotoSede($foto) {
 
   <title>Sedes | Panel Admin</title>
 
-  <link rel="icon" type="image/jpg" href="../../img/logo.jpg?v=1.0">
+  <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
 
@@ -86,7 +88,7 @@ function obtenerRutaFotoSede($foto) {
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
   <link rel="stylesheet"
-        href="../../css/style.css?v=8">
+        href="../assets/css/style.css?v=8">
 </head>
 
 <body>
@@ -97,7 +99,7 @@ function obtenerRutaFotoSede($foto) {
     <div>
 
       <div class="admin-brand">
-        <span class="brand-el">BLEST</span>
+        <span class="brand-el">HAEDO</span>
         <span class="brand-filo"> BARBER</span>
       </div>
 
@@ -277,7 +279,7 @@ function obtenerRutaFotoSede($foto) {
 
                         <div class="admin-barber-mini-photo">
 
-                          <img src="../../<?php echo htmlspecialchars($foto["foto"]); ?>"
+                          <img src="<?php echo htmlspecialchars(obtenerRutaFotoSede($foto["foto"])); ?>"
                                alt="Foto sede">
 
                           <form action="../../controllers/AdminSedeController.php"

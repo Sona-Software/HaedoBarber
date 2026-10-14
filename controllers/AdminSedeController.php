@@ -4,12 +4,12 @@ session_start();
 require_once '../config/database.php';
 
 if (!isset($_SESSION["usuario_id"]) || $_SESSION["usuario_rol"] !== "admin") {
-    header("Location: ../html/login.php");
+    header("Location: ../public/login.php");
     exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: ../html/admin/sedes.php");
+    header("Location: ../public/admin/sedes.php");
     exit;
 }
 
@@ -55,14 +55,14 @@ try {
         $direccion = trim($_POST["direccion"] ?? "");
 
         if ($nombre === "" || $direccion === "") {
-            header("Location: ../html/admin/sedes.php?error=campos_vacios");
+            header("Location: ../public/admin/sedes.php?error=campos_vacios");
             exit;
         }
 
         $foto = subirFotoSede("foto");
 
         if ($foto === false) {
-            header("Location: ../html/admin/sedes.php?error=foto_invalida");
+            header("Location: ../public/admin/sedes.php?error=foto_invalida");
             exit;
         }
 
@@ -75,7 +75,7 @@ try {
         $stmt->bindParam(":foto", $foto);
         $stmt->execute();
 
-        header("Location: ../html/admin/sedes.php?success=creada");
+        header("Location: ../public/admin/sedes.php?success=creada");
         exit;
     }
 
@@ -86,14 +86,14 @@ try {
         $fotoActual = $_POST["foto_actual"] ?? "";
 
         if ($id === "" || $nombre === "" || $direccion === "") {
-            header("Location: ../html/admin/sedes.php?error=campos_vacios");
+            header("Location: ../public/admin/sedes.php?error=campos_vacios");
             exit;
         }
 
         $fotoNueva = subirFotoSede("foto");
 
         if ($fotoNueva === false) {
-            header("Location: ../html/admin/sedes.php?error=foto_invalida");
+            header("Location: ../public/admin/sedes.php?error=foto_invalida");
             exit;
         }
 
@@ -120,7 +120,7 @@ try {
             }
         }
 
-        header("Location: ../html/admin/sedes.php?success=editada");
+        header("Location: ../public/admin/sedes.php?success=editada");
         exit;
     }
 
@@ -135,7 +135,7 @@ try {
         $stmt->bindParam(":id", $id);
         $stmt->execute();
 
-        header("Location: ../html/admin/sedes.php?success=desactivada");
+        header("Location: ../public/admin/sedes.php?success=desactivada");
         exit;
     }
 
@@ -150,7 +150,7 @@ try {
         $stmt->bindParam(":id", $id);
         $stmt->execute();
 
-        header("Location: ../html/admin/sedes.php?success=reactivada");
+        header("Location: ../public/admin/sedes.php?success=reactivada");
         exit;
     }
 
@@ -158,14 +158,14 @@ try {
         $sede_id = $_POST["sede_id"] ?? "";
 
         if ($sede_id === "") {
-            header("Location: ../html/admin/sedes.php?error=campos_vacios");
+            header("Location: ../public/admin/sedes.php?error=campos_vacios");
             exit;
         }
 
         $foto = subirFotoSede("foto");
 
         if ($foto === false || $foto === null) {
-            header("Location: ../html/admin/sedes.php?error=foto_invalida");
+            header("Location: ../public/admin/sedes.php?error=foto_invalida");
             exit;
         }
 
@@ -177,7 +177,7 @@ try {
         $stmt->bindParam(":foto", $foto);
         $stmt->execute();
 
-        header("Location: ../html/admin/sedes.php?success=foto_agregada");
+        header("Location: ../public/admin/sedes.php?success=foto_agregada");
         exit;
     }
 
@@ -186,7 +186,7 @@ try {
         $foto_ruta = $_POST["foto_ruta"] ?? "";
 
         if ($foto_id === "") {
-            header("Location: ../html/admin/sedes.php?error=campos_vacios");
+            header("Location: ../public/admin/sedes.php?error=campos_vacios");
             exit;
         }
 
@@ -206,14 +206,14 @@ try {
             }
         }
 
-        header("Location: ../html/admin/sedes.php?success=foto_eliminada");
+        header("Location: ../public/admin/sedes.php?success=foto_eliminada");
         exit;
     }
 
-    header("Location: ../html/admin/sedes.php?error=accion_invalida");
+    header("Location: ../public/admin/sedes.php?error=accion_invalida");
     exit;
 
 } catch (PDOException $e) {
-    header("Location: ../html/admin/sedes.php?error=db");
+    header("Location: ../public/admin/sedes.php?error=db");
     exit;
 }

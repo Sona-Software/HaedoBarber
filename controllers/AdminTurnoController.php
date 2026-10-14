@@ -4,17 +4,17 @@ session_start();
 require_once '../config/database.php';
 
 if (!isset($_SESSION["usuario_id"])) {
-    header("Location: ../html/login.php");
+    header("Location: ../public/login.php");
     exit;
 }
 
 if ($_SESSION["usuario_rol"] !== "admin") {
-    header("Location: ../html/login.php");
+    header("Location: ../public/login.php");
     exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: ../html/admin/turnos.php");
+    header("Location: ../public/admin/turnos.php");
     exit;
 }
 
@@ -22,7 +22,7 @@ $accion = $_POST["accion"] ?? "";
 $id = $_POST["id"] ?? "";
 
 if (empty($id) || !is_numeric($id)) {
-    header("Location: ../html/admin/turnos.php?error=datos_invalidos");
+    header("Location: ../public/admin/turnos.php?error=datos_invalidos");
     exit;
 }
 
@@ -34,7 +34,7 @@ $estadosPermitidos = [
 ];
 
 if (!array_key_exists($accion, $estadosPermitidos)) {
-    header("Location: ../html/admin/turnos.php?error=accion_invalida");
+    header("Location: ../public/admin/turnos.php?error=accion_invalida");
     exit;
 }
 
@@ -50,10 +50,10 @@ try {
     $stmt->bindParam(":id", $id, PDO::PARAM_INT);
     $stmt->execute();
 
-    header("Location: ../html/admin/turnos.php?success=estado_actualizado");
+    header("Location: ../public/admin/turnos.php?success=estado_actualizado");
     exit;
 
 } catch (PDOException $e) {
-    header("Location: ../html/admin/turnos.php?error=db_error");
+    header("Location: ../public/admin/turnos.php?error=db_error");
     exit;
 }

@@ -4,17 +4,17 @@ session_start();
 require_once '../config/database.php';
 
 if (!isset($_SESSION["usuario_id"])) {
-    header("Location: ../html/login.php");
+    header("Location: ../public/login.php");
     exit;
 }
 
 if ($_SESSION["usuario_rol"] !== "admin") {
-    header("Location: ../html/login.php");
+    header("Location: ../public/login.php");
     exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: ../html/admin/servicios.php");
+    header("Location: ../public/admin/servicios.php");
     exit;
 }
 
@@ -29,12 +29,12 @@ if ($accion === "crear") {
     $activo = 1;
 
     if (empty($nombre) || $precio === "" || $duracion_min === "") {
-        header("Location: ../html/admin/servicios.php?error=campos_vacios");
+        header("Location: ../public/admin/servicios.php?error=campos_vacios");
         exit;
     }
 
     if (!is_numeric($precio) || $precio < 0 || !is_numeric($duracion_min) || $duracion_min <= 0) {
-        header("Location: ../html/admin/servicios.php?error=datos_invalidos");
+        header("Location: ../public/admin/servicios.php?error=datos_invalidos");
         exit;
     }
 
@@ -52,11 +52,11 @@ if ($accion === "crear") {
 
         $stmt->execute();
 
-        header("Location: ../html/admin/servicios.php?success=creado");
+        header("Location: ../public/admin/servicios.php?success=creado");
         exit;
 
     } catch (PDOException $e) {
-        header("Location: ../html/admin/servicios.php?error=db_error");
+        header("Location: ../public/admin/servicios.php?error=db_error");
         exit;
     }
 }
@@ -70,12 +70,12 @@ if ($accion === "editar") {
     $duracion_min = $_POST["duracion_min"] ?? "";
 
     if (empty($id) || empty($nombre) || $precio === "" || $duracion_min === "") {
-        header("Location: ../html/admin/servicios.php?error=campos_vacios");
+        header("Location: ../public/admin/servicios.php?error=campos_vacios");
         exit;
     }
 
     if (!is_numeric($id) || !is_numeric($precio) || $precio < 0 || !is_numeric($duracion_min) || $duracion_min <= 0) {
-        header("Location: ../html/admin/servicios.php?error=datos_invalidos");
+        header("Location: ../public/admin/servicios.php?error=datos_invalidos");
         exit;
     }
 
@@ -97,11 +97,11 @@ if ($accion === "editar") {
 
         $stmt->execute();
 
-        header("Location: ../html/admin/servicios.php?success=editado");
+        header("Location: ../public/admin/servicios.php?success=editado");
         exit;
 
     } catch (PDOException $e) {
-        header("Location: ../html/admin/servicios.php?error=db_error");
+        header("Location: ../public/admin/servicios.php?error=db_error");
         exit;
     }
 }
@@ -111,7 +111,7 @@ if ($accion === "desactivar") {
     $id = $_POST["id"] ?? "";
 
     if (empty($id) || !is_numeric($id)) {
-        header("Location: ../html/admin/servicios.php?error=datos_invalidos");
+        header("Location: ../public/admin/servicios.php?error=datos_invalidos");
         exit;
     }
 
@@ -124,11 +124,11 @@ if ($accion === "desactivar") {
         $stmt->bindParam(":id", $id, PDO::PARAM_INT);
         $stmt->execute();
 
-        header("Location: ../html/admin/servicios.php?success=desactivado");
+        header("Location: ../public/admin/servicios.php?success=desactivado");
         exit;
 
     } catch (PDOException $e) {
-        header("Location: ../html/admin/servicios.php?error=db_error");
+        header("Location: ../public/admin/servicios.php?error=db_error");
         exit;
     }
 }
@@ -138,7 +138,7 @@ if ($accion === "reactivar") {
     $id = $_POST["id"] ?? "";
 
     if (empty($id) || !is_numeric($id)) {
-        header("Location: ../html/admin/servicios.php?error=datos_invalidos");
+        header("Location: ../public/admin/servicios.php?error=datos_invalidos");
         exit;
     }
 
@@ -151,14 +151,14 @@ if ($accion === "reactivar") {
         $stmt->bindParam(":id", $id, PDO::PARAM_INT);
         $stmt->execute();
 
-        header("Location: ../html/admin/servicios.php?success=reactivado");
+        header("Location: ../public/admin/servicios.php?success=reactivado");
         exit;
 
     } catch (PDOException $e) {
-        header("Location: ../html/admin/servicios.php?error=db_error");
+        header("Location: ../public/admin/servicios.php?error=db_error");
         exit;
     }
 }
 
-header("Location: ../html/admin/servicios.php");
+header("Location: ../public/admin/servicios.php");
 exit;

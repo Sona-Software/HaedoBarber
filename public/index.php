@@ -32,13 +32,13 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blest Barber Shop</title> 
+  <title>Haedo Barber</title>
 
-  <link rel="icon" type="image/jpg" href="../img/logo.jpg">
+  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
@@ -46,7 +46,7 @@ try {
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
     <div class="container">
       <a class="navbar-brand" href="index.php">
-        <span class="brand-el">BLEST</span><span class="brand-filo"> BARBER</span>
+        <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
       </a>
 
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu">
@@ -164,7 +164,7 @@ try {
 
           <h1 class="hero-title">
             EL ARTE<br>
-            <span class="title-gold">DEL BLEST.</span>
+            <span class="title-gold">DE HAEDO.</span>
           </h1>
 
           <p class="hero-subtitle">
@@ -183,7 +183,7 @@ try {
         <div class="col-lg-5 d-none d-lg-flex justify-content-end">
           <div class="hero-img-frame">
             <div class="hero-img-inner">
-              <img src="../img/sucursalia.webp"
+              <img src="assets/img/sucursalia.webp"
                    alt="Barbero trabajando"
                    class="hero-photo">
             </div>
@@ -225,11 +225,11 @@ try {
 
         <div class="col-lg-5">
           <div class="about-img-grid">
-            <img src="../img/barber.webp"
+            <img src="assets/img/barber.webp"
                  alt="Interior barbería"
                  class="about-img-main">
 
-            <img src="../img/herramientas.webp"
+            <img src="assets/img/herramientas.webp"
                  alt="Herramientas"
                  class="about-img-side">
 
@@ -249,7 +249,7 @@ try {
           </h2>
 
           <p class="section-body">
-            En <strong>Blest Barber Shop</strong> entendemos que un buen corte no es solo estética:
+            En <strong>Haedo Barber</strong> entendemos que un buen corte no es solo estética:
             es confianza, es carácter. Desde el 2020 trabajamos con dedicación artesanal,
             combinando técnica clásica con tendencias actuales.
           </p>
@@ -401,23 +401,23 @@ try {
 
       <div class="col-lg-4">
         <div class="footer-brand">
-          <span class="brand-el">BLEST</span><span class="brand-filo"> BARBER</span>
+          <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
         </div>
 
         <p class="footer-tagline">El arte del filo, la precisión del corte.</p>
 
         <div class="footer-social">
-          <a href="https://www.instagram.com/blestbarbershop/" target="_blank" aria-label="Instagram">
+          <?php if (!empty($_ENV['INSTAGRAM_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['INSTAGRAM_URL'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
             <i class="bi bi-instagram"></i>
-          </a>
+          </a><?php endif; ?>
 
-          <a href="https://www.tiktok.com/@blestbarbershop00" target="_blank" aria-label="TikTok">
+          <?php if (!empty($_ENV['TIKTOK_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['TIKTOK_URL'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
             <i class="bi bi-tiktok"></i>
-          </a>
+          </a><?php endif; ?>
 
-          <a href="https://api.whatsapp.com/send/?phone=5491151267271" target="_blank" aria-label="WhatsApp">
+          <?php if (!empty($_ENV['WHATSAPP_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
             <i class="bi bi-whatsapp"></i>
-          </a>
+          </a><?php endif; ?>
         </div>
       </div>
 
@@ -494,20 +494,20 @@ try {
           <?php endif; ?>
 
           <li><i class="bi bi-clock-fill"></i> Mar–Sáb 10:30–13:00 / 14:30–20:00</li>
-          <li><i class="bi bi-telephone-fill"></i> +54 9 11 5126-7271</li>
-          <li><i class="bi bi-envelope-fill"></i> Juancruzargentina05@gmail.com</li>
+          <?php if (!empty($_ENV['WHATSAPP_URL'])): ?><li><i class="bi bi-whatsapp"></i> <a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>">Contactanos por WhatsApp</a></li><?php endif; ?>
+          <?php if (!empty($_ENV['CONTACT_EMAIL'])): ?><li><i class="bi bi-envelope-fill"></i> <?php echo htmlspecialchars($_ENV['CONTACT_EMAIL']); ?></li><?php endif; ?>
         </ul>
       </div>
 
     </div>
 
     <div class="footer-bottom">
-      <p>© 2026 Blest Barber Shop · Todos los derechos reservados</p>
+      <p>© 2026 Haedo Barber · Todos los derechos reservados</p>
     </div>
   </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/main.js"></script>
+<script src="assets/js/main.js"></script>
 </body>
 </html>

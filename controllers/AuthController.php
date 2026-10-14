@@ -4,7 +4,7 @@ session_start();
 require_once '../config/database.php';
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: ../html/login.php");
+    header("Location: ../public/login.php");
     exit;
 }
 
@@ -17,7 +17,7 @@ if ($action === "register") {
 } elseif ($action === "logout") {
     logout($conn);
 } else {
-    header("Location: ../html/login.php?error=accion_invalida");
+    header("Location: ../public/login.php?error=accion_invalida");
     exit;
 }
 
@@ -37,27 +37,27 @@ function register($conn) {
         empty($password) ||
         empty($password_confirm)
     ) {
-        header("Location: ../html/registro.php?error=campos_vacios");
+        header("Location: ../public/registro.php?error=campos_vacios");
         exit;
     }
 
     if (!$terminos) {
-        header("Location: ../html/registro.php?error=terminos_no_aceptados");
+        header("Location: ../public/registro.php?error=terminos_no_aceptados");
         exit;
     }
     
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        header("Location: ../html/registro.php?error=email_invalido");
+        header("Location: ../public/registro.php?error=email_invalido");
         exit;
     }
 
     if ($password !== $password_confirm) {
-        header("Location: ../html/registro.php?error=password_no_coincide");
+        header("Location: ../public/registro.php?error=password_no_coincide");
         exit;
     }
 
     if (strlen($password) < 8) {
-        header("Location: ../html/registro.php?error=password_corta");
+        header("Location: ../public/registro.php?error=password_corta");
         exit;
     }
 
@@ -67,7 +67,7 @@ function register($conn) {
     $checkStmt->execute();
 
     if ($checkStmt->rowCount() > 0) {
-        header("Location: ../html/registro.php?error=email_existente");
+        header("Location: ../public/registro.php?error=email_existente");
         exit;
     }
 
@@ -98,7 +98,7 @@ function login($conn) {
     $recordar = isset($_POST["recordar"]);
 
     if (empty($email) || empty($password)) {
-        header("Location: ../html/login.php?error=campos_vacios");
+        header("Location: ../public/login.php?error=campos_vacios");
         exit;
     }
 
@@ -110,7 +110,7 @@ function login($conn) {
     $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$usuario || !password_verify($password, $usuario["password"])) {
-        header("Location: ../html/login.php?error=credenciales_invalidas");
+        header("Location: ../public/login.php?error=credenciales_invalidas");
         exit;
     }
 
@@ -176,11 +176,11 @@ function login($conn) {
     }
 
     if ($usuario["rol"] === "admin") {
-        header("Location: ../html/admin/panel_admin.php");
+        header("Location: ../public/admin/panel_admin.php");
         exit;
     }
 
-    header("Location: ../html/index.php");
+    header("Location: ../public/index.php");
     exit;
     }
 
@@ -204,6 +204,6 @@ function logout($conn) {
     session_unset();
     session_destroy();
 
-    header("Location: ../html/login.php?logout=exitoso");
+    header("Location: ../public/login.php?logout=exitoso");
     exit;
 }

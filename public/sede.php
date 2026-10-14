@@ -14,6 +14,12 @@ $barberos = [];
 $galeriaSede = [];
 $galeriasJS = [];
 
+function rutaPublicaFoto(string $foto): string {
+    if (str_starts_with($foto, 'img/')) return 'assets/' . substr($foto, 4);
+    if (str_starts_with($foto, 'assets/')) return $foto;
+    return '../' . ltrim($foto, '/');
+}
+
 $linkReserva = isset($_SESSION["usuario_id"]) ? "user/reservar_turno.php" : "login.php";
 
 try {
@@ -56,7 +62,7 @@ try {
     $galeriasJS["sede_" . $sedeId] = [];
 
     foreach ($galeriaSede as $foto) {
-        $galeriasJS["sede_" . $sedeId][] = "../" . $foto["foto"];
+        $galeriasJS["sede_" . $sedeId][] = rutaPublicaFoto($foto["foto"]);
     }
 
     $sqlBarberos = "SELECT *
@@ -88,7 +94,7 @@ try {
         $galeriasJS[$galeriaBarbero] = [];
 
         foreach ($fotos as $foto) {
-            $galeriasJS[$galeriaBarbero][] = "../" . $foto["foto"];
+            $galeriasJS[$galeriaBarbero][] = rutaPublicaFoto($foto["foto"]);
         }
     }
 
@@ -105,9 +111,9 @@ try {
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0">
 
-  <title><?php echo htmlspecialchars($sede["nombre"]); ?> | Blest Barber Shop</title>
+  <title><?php echo htmlspecialchars($sede["nombre"]); ?> | Haedo Barber</title>
 
-  <link rel="icon" type="image/jpg" href="../img/logo.jpg">
+  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap"
@@ -115,7 +121,7 @@ try {
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet"
-        href="../css/style.css">
+        href="assets/css/style.css">
 </head>
 
 <body>
@@ -123,7 +129,7 @@ try {
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top scrolled" id="mainNav">
   <div class="container">
     <a class="navbar-brand" href="index.php">
-      <span class="brand-el">BLEST</span><span class="brand-filo"> BARBER</span>
+      <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
     </a>
 
     <button class="navbar-toggler border-0"
@@ -251,7 +257,7 @@ try {
     </div>
 
     <p class="section-eyebrow mb-2">
-      Blest Barber Shop
+      Haedo Barber
     </p>
 
     <h1 class="section-title mb-0">
@@ -322,7 +328,8 @@ try {
                 <div class="col-5">
                   <div class="barber-img-wrap" style="height:100%">
                     <?php
-                    $rutaFoto = !empty($barbero["foto"]) ? htmlspecialchars($barbero["foto"]) : 'img/logo.jpg';
+                    $fotoBarbero = $barbero["foto"] ?? '';
+                    $rutaFoto = str_starts_with($fotoBarbero, 'img/') ? 'assets/' . substr($fotoBarbero, 4) : (str_starts_with($fotoBarbero, 'assets/') ? $fotoBarbero : (!empty($fotoBarbero) ? '../' . $fotoBarbero : 'assets/img/haedobarber-mark.svg'));
                     ?>
                     <img src="../<?php echo $rutaFoto; ?>"
                         alt="<?php echo htmlspecialchars($barbero["nombre"]); ?>"
@@ -362,7 +369,7 @@ try {
                              data-gallery="<?php echo $galeriaNombre; ?>"
                              data-index="<?php echo $index; ?>">
 
-                          <img src="../<?php echo htmlspecialchars($foto["foto"]); ?>"
+                          <img src="<?php echo htmlspecialchars(rutaPublicaFoto($foto["foto"])); ?>"
                                alt="Trabajo <?php echo $index + 1; ?>">
 
                           <?php if ($esVerMas): ?>
@@ -439,7 +446,7 @@ try {
                data-gallery="sede_<?php echo $sedeId; ?>"
                data-index="<?php echo $index; ?>">
 
-            <img src="../<?php echo htmlspecialchars($foto["foto"]); ?>"
+            <img src="<?php echo htmlspecialchars(rutaPublicaFoto($foto["foto"])); ?>"
                  alt="Trabajo sede <?php echo $index + 1; ?>">
 
             <?php if ($esVerMasGaleria): ?>
@@ -537,29 +544,29 @@ try {
 
       <div class="col-lg-4">
         <div class="footer-brand">
-          <span class="brand-el">BLEST</span><span class="brand-filo"> BARBER</span>
+          <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
         </div>
 
         <p class="footer-tagline">El arte del filo, la precisión del corte.</p>
 
         <div class="footer-social">
-          <a href="https://www.instagram.com/blestbarbershop/"
+          <?php if (!empty($_ENV['INSTAGRAM_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['INSTAGRAM_URL'], ENT_QUOTES, 'UTF-8'); ?>"
              target="_blank"
              aria-label="Instagram">
             <i class="bi bi-instagram"></i>
-          </a>
+          </a><?php endif; ?>
 
-          <a href="https://www.tiktok.com/@blestbarbershop00"
+          <?php if (!empty($_ENV['TIKTOK_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['TIKTOK_URL'], ENT_QUOTES, 'UTF-8'); ?>"
              target="_blank"
              aria-label="TikTok">
             <i class="bi bi-tiktok"></i>
-          </a>
+          </a><?php endif; ?>
 
-          <a href="https://api.whatsapp.com/send/?phone=5491151267271"
+          <?php if (!empty($_ENV['WHATSAPP_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>"
              target="_blank"
              aria-label="WhatsApp">
             <i class="bi bi-whatsapp"></i>
-          </a>
+          </a><?php endif; ?>
         </div>
       </div>
 
@@ -626,12 +633,12 @@ try {
 
           <li>
             <i class="bi bi-telephone-fill"></i>
-            +54 9 11 5126-7271
+            <?php if (!empty($_ENV['WHATSAPP_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>">Contactanos por WhatsApp</a><?php endif; ?>
           </li>
 
           <li>
             <i class="bi bi-envelope-fill"></i>
-            Juancruzargentina05@gmail.com
+            <?php echo !empty($_ENV['CONTACT_EMAIL']) ? htmlspecialchars($_ENV['CONTACT_EMAIL']) : 'Contacto mediante formulario'; ?>
           </li>
         </ul>
       </div>
@@ -639,7 +646,7 @@ try {
     </div>
 
     <div class="footer-bottom">
-      <p>© 2026 Blest Barber Shop · Todos los derechos reservados</p>
+      <p>© 2026 Haedo Barber · Todos los derechos reservados</p>
     </div>
   </div>
 </footer>
@@ -760,7 +767,7 @@ carouselElement.addEventListener(
 );
 </script>
 
-<script src="../js/main.js"></script>
+<script src="assets/js/main.js"></script>
 
 </body>
 </html>

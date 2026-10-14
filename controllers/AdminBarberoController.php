@@ -4,12 +4,12 @@ session_start();
 require_once '../config/database.php';
 
 if (!isset($_SESSION["usuario_id"]) || $_SESSION["usuario_rol"] !== "admin") {
-    header("Location: ../html/login.php");
+    header("Location: ../public/login.php");
     exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: ../html/admin/barberos.php");
+    header("Location: ../public/admin/barberos.php");
     exit;
 }
 
@@ -57,14 +57,14 @@ try {
         $sede_id = $_POST["sede_id"] ?? "";
 
         if ($nombre === "" || $especialidad === "" || $sede_id === "") {
-            header("Location: ../html/admin/barberos.php?error=campos_vacios");
+            header("Location: ../public/admin/barberos.php?error=campos_vacios");
             exit;
         }
 
         $foto = subirFotoBarbero("foto");
 
         if ($foto === false) {
-            header("Location: ../html/admin/barberos.php?error=foto_invalida");
+            header("Location: ../public/admin/barberos.php?error=foto_invalida");
             exit;
         }
 
@@ -78,7 +78,7 @@ try {
         $stmt->bindParam(":sede_id", $sede_id);
         $stmt->execute();
 
-        header("Location: ../html/admin/barberos.php?success=creado");
+        header("Location: ../public/admin/barberos.php?success=creado");
         exit;
     }
 
@@ -91,14 +91,14 @@ try {
         $fotoActual = $_POST["foto_actual"] ?? "";
 
         if ($id === "" || $nombre === "" || $especialidad === "" || $sede_id === "") {
-            header("Location: ../html/admin/barberos.php?error=campos_vacios");
+            header("Location: ../public/admin/barberos.php?error=campos_vacios");
             exit;
         }
 
         $fotoNueva = subirFotoBarbero("foto");
 
         if ($fotoNueva === false) {
-            header("Location: ../html/admin/barberos.php?error=foto_invalida");
+            header("Location: ../public/admin/barberos.php?error=foto_invalida");
             exit;
         }
 
@@ -126,7 +126,7 @@ try {
             }
         }
 
-        header("Location: ../html/admin/barberos.php?success=editado");
+        header("Location: ../public/admin/barberos.php?success=editado");
         exit;
     }
 
@@ -142,7 +142,7 @@ try {
         $stmt->bindParam(":id", $id);
         $stmt->execute();
 
-        header("Location: ../html/admin/barberos.php?success=desactivado");
+        header("Location: ../public/admin/barberos.php?success=desactivado");
         exit;
     }
 
@@ -158,7 +158,7 @@ try {
         $stmt->bindParam(":id", $id);
         $stmt->execute();
 
-        header("Location: ../html/admin/barberos.php?success=reactivado");
+        header("Location: ../public/admin/barberos.php?success=reactivado");
         exit;
     }
 
@@ -167,14 +167,14 @@ try {
     $barbero_id = $_POST["barbero_id"] ?? "";
 
     if ($barbero_id === "") {
-        header("Location: ../html/admin/barberos.php?error=campos_vacios");
+        header("Location: ../public/admin/barberos.php?error=campos_vacios");
         exit;
     }
 
     $foto = subirFotoBarbero("foto");
 
     if ($foto === false || $foto === null) {
-        header("Location: ../html/admin/barberos.php?error=foto_invalida");
+        header("Location: ../public/admin/barberos.php?error=foto_invalida");
         exit;
     }
 
@@ -186,7 +186,7 @@ try {
     $stmt->bindParam(":foto", $foto);
     $stmt->execute();
 
-    header("Location: ../html/admin/barberos.php?success=foto_agregada");
+    header("Location: ../public/admin/barberos.php?success=foto_agregada");
     exit;
     }
 
@@ -196,7 +196,7 @@ try {
     $foto_ruta = $_POST["foto_ruta"] ?? "";
 
     if ($foto_id === "") {
-        header("Location: ../html/admin/barberos.php?error=campos_vacios");
+        header("Location: ../public/admin/barberos.php?error=campos_vacios");
         exit;
     }
 
@@ -216,14 +216,14 @@ try {
         }
     }
 
-    header("Location: ../html/admin/barberos.php?success=foto_eliminada");
+    header("Location: ../public/admin/barberos.php?success=foto_eliminada");
     exit;
     }
 
-    header("Location: ../html/admin/barberos.php?error=accion_invalida");
+    header("Location: ../public/admin/barberos.php?error=accion_invalida");
     exit;
 
 } catch (PDOException $e) {
-    header("Location: ../html/admin/barberos.php?error=db");
+    header("Location: ../public/admin/barberos.php?error=db");
     exit;
 }

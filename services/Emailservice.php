@@ -33,7 +33,7 @@ class EmailService {
             $mail = self::configurarMailer();
             $mail->addAddress($emailDestino, $nombreUsuario);
             $mail->isHTML(true);
-            $mail->Subject = 'Confirmacion de Turno - BLEST BARBER';
+            $mail->Subject = 'Confirmacion de Turno - HAEDO BARBER';
             $mail->Body    = "<h3>¡Hola $nombreUsuario!</h3><p>Tu turno ha sido reservado exitosamente.</p><ul><li><strong>Fecha:</strong> $fecha</li><li><strong>Hora:</strong> $hora</li><li><strong>Sede:</strong> $sede</li><li><strong>Servicio:</strong> $servicio</li></ul><p>¡Te esperamos!</p>";
             return $mail->send();
         } catch (Exception $e) { return false; }
@@ -44,7 +44,7 @@ class EmailService {
             $mail = self::configurarMailer();
             $mail->addAddress($emailDestino, $nombreUsuario);
             $mail->isHTML(true);
-            $mail->Subject = 'Recordatorio de Turno - BLEST BARBER';
+            $mail->Subject = 'Recordatorio de Turno - HAEDO BARBER';
             $mail->Body    = "<h3>¡Hola $nombreUsuario!</h3><p>Te recordamos que tienes un turno con nosotros <strong>hoy a las $hora</strong> en nuestra sucursal de <strong>$sede</strong>.</p><p>Por favor, intenta llegar 5 minutos antes.</p><p>¡Nos vemos pronto!</p>";
             return $mail->send();
         } catch (Exception $e) { return false; }

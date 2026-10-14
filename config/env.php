@@ -1,27 +1,31 @@
 <?php
 
-$envFile = __DIR__ . '/../.env';
+declare(strict_types=1);
 
-if (file_exists($envFile)) {
-    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        $line = trim($line);
-    //// Nuevos continue
-    //
-    //
-    //
-        if ($line === '' || str_starts_with($line, '#')) {
-            continue;
-        }
-      //ifosfisf
-    //sifjosjf
-    //sifjosjfsiofoisf
-    //sifjosjfsiofoisf
-    //
-        [$key, $value] = explode('=', $line, 2);
-        $key = trim($key);
-        $value = trim($value);
+$envFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
+if (!is_file($envFile) || !is_readable($envFile)) {
+    return;
+}
 
-        $_ENV[$key] = $value;
-        putenv("$key=$value");
+foreach (file($envFile, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+    $line = trim($line);
+    if ($line === '' || str_starts_with($line, '#') || str_starts_with($line, '//') || !str_contains($line, '=')) {
+        continue;
     }
+
+    [$key, $value] = explode('=', $line, 2);
+    $key = trim($key);
+    $value = trim(trim($value), "\"'");
+    if ($key === '') {
+        continue;
+    }
+
+    $existingValue = getenv($key);
+    if ($existingValue !== false) {
+        $_ENV[$key] = $existingValue;
+        continue;
+    }
+
+    $_ENV[$key] = $value;
+    putenv($key . '=' . $value);
 }

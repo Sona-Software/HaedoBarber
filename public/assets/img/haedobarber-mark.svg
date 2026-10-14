@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Haedo Barber</title>
+  <rect width="128" height="128" rx="28" fill="#171717"/>
+  <rect x="7" y="7" width="114" height="114" rx="23" fill="none" stroke="#c9a66b" stroke-width="2"/>
+  <path d="M36 36v56M92 36v56M36 64h56" fill="none" stroke="#f5f0e7" stroke-linecap="square" stroke-width="8"/>
+  <path d="M25 101h78" stroke="#c9a66b" stroke-width="3"/>
+</svg>

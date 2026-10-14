@@ -4,12 +4,12 @@ session_start();
 require_once '../config/database.php';
 
 if (!isset($_SESSION["usuario_id"])) {
-    header("Location: ../html/login.php");
+    header("Location: ../public/login.php");
     exit;
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: ../html/user/panel_usuario.php");
+    header("Location: ../public/user/panel_usuario.php");
     exit;
 }
 
@@ -21,7 +21,7 @@ if ($accion === "cancelar_usuario") {
     $id = $_POST["id"] ?? "";
 
     if (empty($id) || !is_numeric($id)) {
-        header("Location: ../html/user/panel_usuario.php?error=datos_invalidos");
+        header("Location: ../public/user/panel_usuario.php?error=datos_invalidos");
         exit;
     }
 
@@ -37,11 +37,11 @@ if ($accion === "cancelar_usuario") {
         $stmt->bindParam(":usuario_id", $usuarioId, PDO::PARAM_INT);
         $stmt->execute();
 
-        header("Location: ../html/user/panel_usuario.php?success=turno_cancelado");
+        header("Location: ../public/user/panel_usuario.php?success=turno_cancelado");
         exit;
 
     } catch (PDOException $e) {
-        header("Location: ../html/user/panel_usuario.php?error=db_error");
+        header("Location: ../public/user/panel_usuario.php?error=db_error");
         exit;
     }
 }
@@ -62,7 +62,7 @@ if ($accion === "crear") {
         empty($fecha) ||
         empty($hora)
     ) {
-        header("Location: ../html/user/reservar_turno.php?error=campos_vacios");
+        header("Location: ../public/user/reservar_turno.php?error=campos_vacios");
         exit;
     }
 
@@ -71,19 +71,19 @@ if ($accion === "crear") {
         !is_numeric($barberoId) ||
         !is_numeric($servicioId)
     ) {
-        header("Location: ../html/user/reservar_turno.php?error=datos_invalidos");
+        header("Location: ../public/user/reservar_turno.php?error=datos_invalidos");
         exit;
     }
 
     if ($fecha < date("Y-m-d")) {
-        header("Location: ../html/user/reservar_turno.php?error=fecha_pasada");
+        header("Location: ../public/user/reservar_turno.php?error=fecha_pasada");
         exit;
     }
 
     $diaSemana = date("N", strtotime($fecha));
 
     if ($diaSemana == 1 || $diaSemana == 7) {
-        header("Location: ../html/user/reservar_turno.php?error=dia_cerrado");
+        header("Location: ../public/user/reservar_turno.php?error=dia_cerrado");
         exit;
     }
 
@@ -109,7 +109,7 @@ if ($accion === "crear") {
         $datosReserva = $stmtValidar->fetch(PDO::FETCH_ASSOC);
 
         if (!$datosReserva) {
-            header("Location: ../html/user/reservar_turno.php?error=datos_invalidos");
+            header("Location: ../public/user/reservar_turno.php?error=datos_invalidos");
             exit;
         }
 
@@ -136,7 +136,7 @@ if ($accion === "crear") {
         }
 
         if (!$dentroDeHorario) {
-            header("Location: ../html/user/reservar_turno.php?error=horario_invalido");
+            header("Location: ../public/user/reservar_turno.php?error=horario_invalido");
             exit;
         }
 
@@ -160,7 +160,7 @@ if ($accion === "crear") {
             $finExistenteUsuario = $inicioExistenteUsuario + (intval($turnoUsuario["duracion_min"]) * 60);
 
             if ($inicioNuevo < $finExistenteUsuario && $finNuevo > $inicioExistenteUsuario) {
-                header("Location: ../html/user/reservar_turno.php?error=usuario_turno_superpuesto");
+                header("Location: ../public/user/reservar_turno.php?error=usuario_turno_superpuesto");
                 exit;
             }
         }
@@ -185,7 +185,7 @@ if ($accion === "crear") {
             $finExistente = $inicioExistente + (intval($turnoOcupado["duracion_min"]) * 60);
 
             if ($inicioNuevo < $finExistente && $finNuevo > $inicioExistente) {
-                header("Location: ../html/user/reservar_turno.php?error=horario_ocupado");
+                header("Location: ../public/user/reservar_turno.php?error=horario_ocupado");
                 exit;
             }
         }
@@ -233,14 +233,14 @@ if ($accion === "crear") {
                 $nombreServicio
             );
         }
-        header("Location: ../html/user/panel_usuario.php?success=turno_creado");
+        header("Location: ../public/user/panel_usuario.php?success=turno_creado");
         exit;
 
     } catch (PDOException $e) {
-        header("Location: ../html/user/reservar_turno.php?error=db_error");
+        header("Location: ../public/user/reservar_turno.php?error=db_error");
         exit;
     }
 }
 
-header("Location: ../html/user/panel_usuario.php");
+header("Location: ../public/user/panel_usuario.php");
 exit;

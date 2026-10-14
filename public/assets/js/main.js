@@ -1,5 +1,5 @@
 /* ============================================================
-   BLEST BARBER — BARBERÍA | JavaScript principal
+   HAEDO BARBER — BARBERÍA | JavaScript principal
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {

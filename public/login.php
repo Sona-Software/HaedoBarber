@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ingresar | Blest Barber Shop</title>
-  <link rel="icon" type="image/jpg" href="../img/logo.jpg">
+  <title>Ingresar | Haedo Barber</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="auth-page">
 
@@ -16,7 +16,7 @@
   <nav class="navbar navbar-dark fixed-top py-3" style="background:rgba(10,10,10,0.95);border-bottom:1px solid var(--border)">
     <div class="container">
       <a class="navbar-brand" href="index.php">
-        <span class="brand-el">BLEST</span><span class="brand-filo"> BARBER</span>
+        <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
       </a>
       <a href="index.php" class="btn btn-outline-gold btn-sm">← Volver al inicio</a>
     </div>
@@ -118,7 +118,7 @@
 
       <div class="mt-4 pt-4" style="border-top:1px solid var(--border);text-align:center">
         <p style="font-size:12px;color:var(--muted)">
-          ¿Primera vez en Blest Barber?
+          ¿Primera vez en Haedo Barber?
           <a href="registro.php" class="text-gold text-decoration-none fw-semibold ms-1">Creá tu cuenta</a>
         </p>
       </div>
@@ -140,6 +140,6 @@
       }
     }
   </script>
-  <script src="../js/main.js"></script>
+  <script src="assets/js/main.js"></script>
 </body>
 </html>
