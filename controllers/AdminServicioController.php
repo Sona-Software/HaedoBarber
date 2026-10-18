@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/security.php';
 
 require_once '../config/database.php';
 
@@ -15,6 +15,23 @@ if ($_SESSION["usuario_rol"] !== "admin") {
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: ../public/admin/servicios.php");
+    exit;
+}
+
+csrf_verify();
+
+// Límites de entrada: longitudes máximas y rangos numéricos razonables.
+foreach (["nombre" => 100, "descripcion" => 1000, "id" => 10, "precio" => 12, "duracion_min" => 4] as $campoTexto => $maxLargo) {
+    if (isset($_POST[$campoTexto]) && (!is_string($_POST[$campoTexto]) || mb_strlen(trim($_POST[$campoTexto]), "UTF-8") > $maxLargo)) {
+        header("Location: ../public/admin/servicios.php?error=datos_invalidos");
+        exit;
+    }
+}
+if (
+    (isset($_POST["precio"]) && is_numeric($_POST["precio"]) && (float) $_POST["precio"] > 99999999) ||
+    (isset($_POST["duracion_min"]) && is_numeric($_POST["duracion_min"]) && (float) $_POST["duracion_min"] > 600)
+) {
+    header("Location: ../public/admin/servicios.php?error=datos_invalidos");
     exit;
 }
 

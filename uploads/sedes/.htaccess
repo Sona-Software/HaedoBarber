@@ -1,0 +1,23 @@
+# Uploads: sólo se sirven imágenes; jamás se ejecuta código.
+Options -Indexes -ExecCGI -Includes
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .pl .py .cgi .shtml
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
+
+# Denegar todo salvo imágenes
+<FilesMatch ".*">
+    Require all denied
+</FilesMatch>
+<FilesMatch "(?i)\.(jpe?g|png|webp)$">
+    Require all granted
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox"
+</IfModule>

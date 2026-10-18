@@ -1,11 +1,53 @@
-Options -Indexes
+# --- Haedo Barber: endurecimiento Apache (requiere AllowOverride All) ---
+Options -Indexes -MultiViews
+ServerSignature Off
 
+# Archivos ocultos (.env, .git, .gitignore...) y archivos que nunca deben servirse
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
+<FilesMatch "(?i)\.(env|sql|md|log|bak|old|orig|swp|ini|sh|dist|lock|yml|yaml|example)$">
+    Require all denied
+</FilesMatch>
 
+# Carpetas internas (además tienen su propio .htaccess con "Require all denied")
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^(config|database|libs|scripts|services)(/|$) - [F,NC,L]
-    RewriteRule ^test_connection\.php$ - [F,NC,L]
+    RewriteRule ^\.git(/|$) - [F,NC,L]
+
+    # Forzar HTTPS en producción (descomentar cuando haya certificado):
+    # RewriteCond %{HTTPS} !=on
+    # RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Cabeceras de seguridad
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    # CSP: Bootstrap/Bootstrap Icons (jsDelivr), Google Fonts y el iframe de Google Maps.
+    # 'unsafe-inline' hace falta porque las páginas tienen <script>/<style> y style="" en línea.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data:; frame-src https://www.google.com https://maps.google.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    # HSTS: activar sólo cuando todo el sitio funcione bajo HTTPS.
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# Errores de PHP: nunca mostrarlos al público (config/security.php también lo fuerza)
+<IfModule mod_php.c>
+    php_flag display_errors off
+    php_flag display_startup_errors off
+    php_flag log_errors on
+    php_flag session.cookie_httponly on
+    php_flag session.use_strict_mode on
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag display_errors off
+    php_flag display_startup_errors off
+    php_flag log_errors on
+    php_flag session.cookie_httponly on
+    php_flag session.use_strict_mode on
 </IfModule>

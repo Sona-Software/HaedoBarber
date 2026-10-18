@@ -1,12 +1,14 @@
 <?php
 
-session_start();
-require_once '../config/database.php';
+require_once __DIR__ . '/../config/security.php';
+require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: ../public/login.php");
     exit;
 }
+
+csrf_verify();
 
 $action = $_POST["action"] ?? "";
 
@@ -22,22 +24,39 @@ if ($action === "register") {
 }
 
 function register($conn) {
-    $nombre = trim($_POST["nombre"] ?? "");
-    $apellido = trim($_POST["apellido"] ?? "");
-    $telefono = trim($_POST["telefono"] ?? "");
-    $email = trim($_POST["email"] ?? "");
-    $password = $_POST["password"] ?? "";
-    $password_confirm = $_POST["password_confirm"] ?? "";
+    // Límite de registros por IP (anti-spam / creación masiva de cuentas).
+    if (rl_bloqueado($conn, "registro", "", 5, 5, PHP_INT_MAX, 3600)) {
+        header("Location: ../public/registro.php?error=demasiados_intentos");
+        exit;
+    }
+    rl_registrar($conn, "registro", "");
+
+    $nombre = limpiar_linea($_POST["nombre"] ?? "", 80);
+    $apellido = limpiar_linea($_POST["apellido"] ?? "", 80);
+    $telefono = limpiar_linea($_POST["telefono"] ?? "", 30);
+    $email = limpiar_linea($_POST["email"] ?? "", 120);
+    $password = is_string($_POST["password"] ?? null) ? $_POST["password"] : "";
+    $password_confirm = is_string($_POST["password_confirm"] ?? null) ? $_POST["password_confirm"] : "";
     $terminos = isset($_POST["terminos"]);
 
     if (
-        empty($nombre) ||
-        empty($apellido) ||
-        empty($email) ||
-        empty($password) ||
-        empty($password_confirm)
+        $nombre === "" ||
+        $apellido === "" ||
+        $email === "" ||
+        $password === "" ||
+        $password_confirm === ""
     ) {
         header("Location: ../public/registro.php?error=campos_vacios");
+        exit;
+    }
+
+    if (mb_strlen($nombre, 'UTF-8') < 2 || mb_strlen($apellido, 'UTF-8') < 2) {
+        header("Location: ../public/registro.php?error=campos_vacios");
+        exit;
+    }
+
+    if ($telefono !== "" && !preg_match('/^[0-9+()\s-]{6,30}$/', $telefono)) {
+        header("Location: ../public/registro.php?error=telefono_invalido");
         exit;
     }
 
@@ -45,7 +64,7 @@ function register($conn) {
         header("Location: ../public/registro.php?error=terminos_no_aceptados");
         exit;
     }
-    
+
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         header("Location: ../public/registro.php?error=email_invalido");
         exit;
@@ -56,24 +75,15 @@ function register($conn) {
         exit;
     }
 
-    if (strlen($password) < 8) {
-        header("Location: ../public/registro.php?error=password_corta");
-        exit;
-    }
-
-    $checkSql = "SELECT id FROM usuarios WHERE email = :email";
-    $checkStmt = $conn->prepare($checkSql);
-    $checkStmt->bindParam(":email", $email);
-    $checkStmt->execute();
-
-    if ($checkStmt->rowCount() > 0) {
-        header("Location: ../public/registro.php?error=email_existente");
+    $errorPassword = validar_password($password, $email);
+    if ($errorPassword !== null) {
+        header("Location: ../public/registro.php?error=" . $errorPassword);
         exit;
     }
 
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-    $sql = "INSERT INTO usuarios 
+    $sql = "INSERT INTO usuarios
             (nombre, apellido, telefono, email, password, rol)
             VALUES
             (:nombre, :apellido, :telefono, :email, :password, 'general')";
@@ -86,19 +96,40 @@ function register($conn) {
     $stmt->bindParam(":email", $email);
     $stmt->bindParam(":password", $hashedPassword);
 
-    $stmt->execute();
+    try {
+        $stmt->execute();
+    } catch (PDOException $e) {
+        // El email duplicado se informa con un mensaje genérico (ver registro.php).
+        $error = $e->getCode() === '23000' ? 'registro_fallido' : 'db_error';
+        if ($error === 'db_error') {
+            error_log('Haedo Barber: error al registrar: ' . $e->getMessage());
+        }
+        header("Location: ../public/registro.php?error=" . $error);
+        exit;
+    }
 
-    login($conn);
-    exit;
+    $stmtUsuario = $conn->prepare("SELECT * FROM usuarios WHERE id = :id LIMIT 1");
+    $stmtUsuario->bindValue(":id", (int) $conn->lastInsertId(), PDO::PARAM_INT);
+    $stmtUsuario->execute();
+    $usuario = $stmtUsuario->fetch(PDO::FETCH_ASSOC);
+
+    completar_login($conn, $usuario, isset($_POST["recordar"]));
 }
 
 function login($conn) {
-    $email = trim($_POST["email"] ?? "");
-    $password = $_POST["password"] ?? "";
+    $email = limpiar_linea($_POST["email"] ?? "", 120);
+    $password = is_string($_POST["password"] ?? null) ? $_POST["password"] : "";
     $recordar = isset($_POST["recordar"]);
 
-    if (empty($email) || empty($password)) {
+    if ($email === "" || $password === "" || strlen($password) > 200) {
         header("Location: ../public/login.php?error=campos_vacios");
+        exit;
+    }
+
+    // Bloqueo temporal por fuerza bruta: 5 fallos por IP+email, 20 por IP o 30 por email en 15 min.
+    $ident = rl_ident($email);
+    if (rl_bloqueado($conn, "login", $ident, 5, 20, 30, 900)) {
+        header("Location: ../public/login.php?error=bloqueado");
         exit;
     }
 
@@ -109,70 +140,46 @@ function login($conn) {
 
     $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$usuario || !password_verify($password, $usuario["password"])) {
+    // Se verifica siempre un hash (falso si el usuario no existe) para igualar tiempos
+    // y no revelar qué emails están registrados.
+    $hashAComparar = $usuario ? $usuario["password"] : HB_DUMMY_HASH;
+    $passwordOk = password_verify($password, $hashAComparar);
+
+    if (!$usuario || !$passwordOk) {
+        rl_registrar($conn, "login", $ident);
         header("Location: ../public/login.php?error=credenciales_invalidas");
         exit;
     }
 
-    $_SESSION["usuario_id"] = $usuario["id"];
-    $_SESSION["usuario_nombre"] = $usuario["nombre"];
-    $_SESSION["usuario_email"] = $usuario["email"];
-    $_SESSION["usuario_rol"] = $usuario["rol"];
+    rl_limpiar($conn, "login", $ident);
 
-    $sqlUltimoAcceso = "UPDATE usuarios
-                        SET ultimo_acceso = NOW()
-                        WHERE id = :id";
+    if (password_needs_rehash($usuario["password"], PASSWORD_DEFAULT)) {
+        $nuevoHash = password_hash($password, PASSWORD_DEFAULT);
+        $stmtRehash = $conn->prepare("UPDATE usuarios SET password = :p WHERE id = :id");
+        $stmtRehash->bindValue(":p", $nuevoHash);
+        $stmtRehash->bindValue(":id", (int) $usuario["id"], PDO::PARAM_INT);
+        $stmtRehash->execute();
+    }
 
-    $stmtUltimoAcceso = $conn->prepare($sqlUltimoAcceso);
-    $stmtUltimoAcceso->bindParam(":id", $usuario["id"]);
+    completar_login($conn, $usuario, $recordar);
+}
+
+function completar_login($conn, $usuario, $recordar) {
+    iniciar_sesion_usuario($usuario);
+
+    $stmtUltimoAcceso = $conn->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = :id");
+    $stmtUltimoAcceso->bindValue(":id", (int) $usuario["id"], PDO::PARAM_INT);
     $stmtUltimoAcceso->execute();
 
-    if ($recordar) {
-        $token = bin2hex(random_bytes(32));
-        $tokenHash = hash("sha256", $token);
-
-        $sqlToken = "UPDATE usuarios
-                     SET remember_token_hash = :token_hash,
-                         remember_token_expira = DATE_ADD(NOW(), INTERVAL 1 MONTH)
-                     WHERE id = :id";
-
-        $stmtToken = $conn->prepare($sqlToken);
-        $stmtToken->bindParam(":token_hash", $tokenHash);
-        $stmtToken->bindParam(":id", $usuario["id"]);
-        $stmtToken->execute();
-
-        setcookie(
-            "remember_token",
-            $token,
-            time() + (30 * 24 * 60 * 60),
-            "/",
-            "",
-            false,
-            true
-        );
-
-        setcookie(
-            "remember_user",
-            $usuario["id"],
-            time() + (30 * 24 * 60 * 60),
-            "/",
-            "",
-            false,
-            true
-        );
-
-    } else {
-        $sqlLimpiarToken = "UPDATE usuarios
-                            SET remember_token_hash = NULL,
-                                remember_token_expira = NULL
-                            WHERE id = :id";
-
-        $stmtLimpiarToken = $conn->prepare($sqlLimpiarToken);
-        $stmtLimpiarToken->bindParam(":id", $usuario["id"]);
-        $stmtLimpiarToken->execute();
-
-        setcookie("remember_token", "", time() - 3600, "/");
-        setcookie("remember_user", "", time() - 3600, "/");
+    try {
+        if ($recordar) {
+            recordar_emitir($conn, (int) $usuario["id"]);
+        } else {
+            recordar_revocar($conn, (int) $usuario["id"]);
+            recordar_borrar_cookies();
+        }
+    } catch (PDOException $e) {
+        error_log("Haedo Barber: recordarme no disponible (¿falta migrations_002_security.sql?): " . $e->getMessage());
     }
 
     if ($usuario["rol"] === "admin") {
@@ -182,27 +189,21 @@ function login($conn) {
 
     header("Location: ../public/index.php");
     exit;
-    }
+}
 
 function logout($conn) {
     $usuarioId = $_SESSION["usuario_id"] ?? null;
 
     if ($usuarioId) {
-        $sql = "UPDATE usuarios
-                SET remember_token_hash = NULL,
-                    remember_token_expira = NULL
-                WHERE id = :id";
-
-        $stmt = $conn->prepare($sql);
-        $stmt->bindParam(":id", $usuarioId);
-        $stmt->execute();
+        try {
+            recordar_revocar($conn, (int) $usuarioId);
+        } catch (PDOException $e) {
+            error_log("Haedo Barber: no se pudo revocar recordarme: " . $e->getMessage());
+        }
     }
 
-    setcookie("remember_token", "", time() - 3600, "/");
-    setcookie("remember_user", "", time() - 3600, "/");
-
-    session_unset();
-    session_destroy();
+    recordar_borrar_cookies();
+    destruir_sesion();
 
     header("Location: ../public/login.php?logout=exitoso");
     exit;
