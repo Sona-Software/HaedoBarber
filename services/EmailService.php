@@ -16,37 +16,59 @@ class EmailService {
         $mail->CharSet = 'UTF-8';
 
         $mail->isSMTP();
-        $mail->Host       = $_ENV['SMTP_HOST'];
+        $mail->Host       = $_ENV['SMTP_HOST'] ?? '';
         $mail->SMTPAuth   = true;
-        $mail->Username   = $_ENV['SMTP_USER'];
-        $mail->Password   = $_ENV['SMTP_PASS'];
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-        $mail->Port       = $_ENV['SMTP_PORT'];
+        $mail->Username   = $_ENV['SMTP_USER'] ?? '';
+        $mail->Password   = $_ENV['SMTP_PASS'] ?? '';
+        $puerto = (int) ($_ENV['SMTP_PORT'] ?? 465);
+        $mail->SMTPSecure = $puerto === 587 ? PHPMailer::ENCRYPTION_STARTTLS : PHPMailer::ENCRYPTION_SMTPS;
+        $mail->Port       = $puerto;
+        $mail->SMTPDebug  = 0;
 
-        $mail->setFrom($_ENV['SMTP_FROM'], $_ENV['SMTP_FROM_NAME']);
+        $mail->setFrom($_ENV['SMTP_FROM'] ?? '', $_ENV['SMTP_FROM_NAME'] ?? 'Haedo Barber');
         
         return $mail;
     }
 
+    private static function esc($valor) {
+        return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
+    }
+
     public static function enviarConfirmacion($emailDestino, $nombreUsuario, $fecha, $hora, $sede, $servicio) {
         try {
+            $nombrePlano = trim((string) preg_replace('/[\x00-\x1F\x7F]+/', ' ', (string) $nombreUsuario)); // sin CR/LF (header injection)
+            $nombreUsuario = self::esc($nombreUsuario);
+            $fecha = self::esc($fecha);
+            $hora = self::esc($hora);
+            $sede = self::esc($sede);
+            $servicio = self::esc($servicio);
             $mail = self::configurarMailer();
-            $mail->addAddress($emailDestino, $nombreUsuario);
+            $mail->addAddress($emailDestino, $nombrePlano);
             $mail->isHTML(true);
             $mail->Subject = 'Confirmacion de Turno - HAEDO BARBER';
             $mail->Body    = "<h3>¡Hola $nombreUsuario!</h3><p>Tu turno ha sido reservado exitosamente.</p><ul><li><strong>Fecha:</strong> $fecha</li><li><strong>Hora:</strong> $hora</li><li><strong>Sede:</strong> $sede</li><li><strong>Servicio:</strong> $servicio</li></ul><p>¡Te esperamos!</p>";
             return $mail->send();
-        } catch (Exception $e) { return false; }
+        } catch (\Throwable $e) {
+            error_log('Haedo Barber: error enviando confirmacion: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public static function enviarRecordatorio($emailDestino, $nombreUsuario, $hora, $sede) {
         try {
+            $nombrePlano = trim((string) preg_replace('/[\x00-\x1F\x7F]+/', ' ', (string) $nombreUsuario)); // sin CR/LF (header injection)
+            $nombreUsuario = self::esc($nombreUsuario);
+            $hora = self::esc($hora);
+            $sede = self::esc($sede);
             $mail = self::configurarMailer();
-            $mail->addAddress($emailDestino, $nombreUsuario);
+            $mail->addAddress($emailDestino, $nombrePlano);
             $mail->isHTML(true);
             $mail->Subject = 'Recordatorio de Turno - HAEDO BARBER';
             $mail->Body    = "<h3>¡Hola $nombreUsuario!</h3><p>Te recordamos que tienes un turno con nosotros <strong>hoy a las $hora</strong> en nuestra sucursal de <strong>$sede</strong>.</p><p>Por favor, intenta llegar 5 minutos antes.</p><p>¡Nos vemos pronto!</p>";
             return $mail->send();
-        } catch (Exception $e) { return false; }
+        } catch (\Throwable $e) {
+            error_log('Haedo Barber: error enviando recordatorio: ' . $e->getMessage());
+            return false;
+        }
     }
 }

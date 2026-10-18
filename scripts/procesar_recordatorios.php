@@ -1,4 +1,10 @@
 <?php
+// Sólo por consola / cron: nunca accesible desde el navegador.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit;
+}
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../services/EmailService.php';
 
@@ -26,16 +32,21 @@ try {
     foreach ($turnos as $turno) {
         if (!empty($turno['email'])) {
             // Enviar correo
-            EmailService::enviarRecordatorio(
-                $turno['email'], 
-                $turno['usuario_nombre'], 
-                $turno['hora'], 
+            $enviado = EmailService::enviarRecordatorio(
+                $turno['email'],
+                $turno['usuario_nombre'],
+                substr($turno['hora'], 0, 5),
                 $turno['sede_nombre']
             );
 
+            if (!$enviado) {
+                echo "No se pudo enviar el recordatorio del turno ID: " . $turno['turno_id'] . "\n";
+                continue;
+            }
+
             // Marcar en la BD que ya se envió para no volver a mandarlo
             $stmtUpdate->execute([':id' => $turno['turno_id']]);
-            
+
             echo "Recordatorio enviado al turno ID: " . $turno['turno_id'] . "\n";
         }
     }
