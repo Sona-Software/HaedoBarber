@@ -6,6 +6,7 @@ USE haedobarber_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS turnos_intentos;
 DROP TABLE IF EXISTS turnos;
 DROP TABLE IF EXISTS barbero_fotos;
 DROP TABLE IF EXISTS sede_galeria;
@@ -13,6 +14,7 @@ DROP TABLE IF EXISTS barberos;
 DROP TABLE IF EXISTS servicios;
 DROP TABLE IF EXISTS sedes;
 DROP TABLE IF EXISTS contactos;
+DROP TABLE IF EXISTS intentos_acceso;
 DROP TABLE IF EXISTS usuarios;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -27,8 +29,21 @@ CREATE TABLE usuarios (
     rol ENUM('admin','general') NOT NULL DEFAULT 'general',
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ultimo_acceso DATETIME NULL,
+    remember_selector CHAR(18) NULL,
     remember_token_hash VARCHAR(255) NULL,
-    remember_token_expira DATETIME NULL
+    remember_token_expira DATETIME NULL,
+    UNIQUE KEY uq_usuarios_remember_selector (remember_selector)
+);
+
+-- Intentos de login/registro/contacto para bloqueo temporal (fuerza bruta / spam).
+CREATE TABLE intentos_acceso (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tipo VARCHAR(20) NOT NULL,
+    ip VARCHAR(45) NOT NULL,
+    ident CHAR(64) NOT NULL DEFAULT '',
+    creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_intentos_tipo_ip (tipo, ip, creado_en),
+    INDEX idx_intentos_tipo_ident (tipo, ident, creado_en)
 );
 
 CREATE TABLE contactos (
@@ -101,8 +116,10 @@ CREATE TABLE turnos (
     hora TIME NOT NULL,
     estado ENUM('pendiente','confirmado','cancelado','completado','ausente') NOT NULL DEFAULT 'pendiente',
     observaciones TEXT NULL,
+    recordatorio_enviado TINYINT(1) NOT NULL DEFAULT 0,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    hora_activa TIME GENERATED ALWAYS AS (IF(estado IN ('pendiente','confirmado'), hora, NULL)) VIRTUAL,
 
     CONSTRAINT fk_turnos_usuario
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
@@ -122,21 +139,20 @@ CREATE INDEX idx_turnos_sede ON turnos(sede_id);
 CREATE INDEX idx_turnos_barbero ON turnos(barbero_id);
 CREATE INDEX idx_turnos_servicio ON turnos(servicio_id);
 CREATE INDEX idx_turnos_fecha ON turnos(fecha);
-CREATE UNIQUE INDEX uq_turno_barbero_fecha_hora
-ON turnos(barbero_id, fecha, hora);
+-- Solo turnos activos ocupan el horario (un turno cancelado libera el slot).
+CREATE UNIQUE INDEX uq_turno_activo_barbero_fecha_hora
+ON turnos(barbero_id, fecha, hora_activa);
 
-INSERT INTO usuarios
-(nombre, apellido, telefono, email, password, rol)
-VALUES
-('Admin', 'Sistema', '1111111111', 'admin@haedobarber.test', '$2y$12$7V/14xaIm/YnnrvzRosINu4/xk49vcvBDPdG0DIErWe0TtdqpYgLq', 'admin'),
-('Usuario', 'General', '2222222222', 'usuario@haedobarber.test', '$2y$12$0LubMCbipcMq2eLuIpZNluhflVon5m/yppWssoNwE9x1f7.QSQyBC', 'general');
+-- Registro de intentos de reserva/cancelación (rate limiting por IP y cuenta).
+CREATE TABLE turnos_intentos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip VARCHAR(45) NOT NULL,
+    usuario_id INT NULL,
+    accion VARCHAR(20) NOT NULL,
+    exito TINYINT(1) NOT NULL DEFAULT 0,
+    creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_intentos_ip (ip, accion, creado_en),
+    INDEX idx_intentos_usuario (usuario_id, accion, creado_en)
+);
 
-INSERT INTO servicios
-(nombre, descripcion, precio, duracion_min, activo)
-VALUES
-('Corte Completo', 'Asesoramiento, corte con máquina/tijera y peinado con cera.', 17000, 30, 1),
-('Corte + Barba', 'Corte completo + alineación, rebaje y perfilado de barba.', 22000, 60, 1),
-('Solo Barba', 'Alineación, rebaje y perfilado.', 12000, 30, 1),
-('Global', 'Decoloración global y matizado, incluye corte.', 55000, 90, 1),
-('Mechas', 'Decoloración con gorro para mechas y matizado, incluye corte.', 50000, 90, 1),
-('Perfilado cejas / Diseño & Freestyle', 'Diseño personalizado y perfilado.', 0, 30, 1);
+-- Instalación vacía: sin usuarios, sedes, barberos ni servicios. Ver README (primer uso).
