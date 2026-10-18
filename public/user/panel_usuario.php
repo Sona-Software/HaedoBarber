@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config/security.php';
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: ../login.php");
@@ -7,6 +7,7 @@ if (!isset($_SESSION["usuario_id"])) {
 }
 
 require_once '../../config/database.php';
+require_once '../../config/turnos_helper.php';
 
 $usuarioId = $_SESSION["usuario_id"];
 $nombreUsuario = $_SESSION["usuario_nombre"] ?? "Usuario";
@@ -15,6 +16,7 @@ $emailUsuario = $_SESSION["usuario_email"] ?? "";
 $success = $_GET["success"] ?? "";
 $error = $_GET["error"] ?? "";
 $errorDB = false;
+$restriccionUsuario = null;
 
 try {
     $sqlProximos = "SELECT
@@ -35,7 +37,7 @@ try {
                     INNER JOIN servicios sv ON t.servicio_id = sv.id
                     WHERE t.usuario_id = :usuario_id
                     AND t.estado IN ('pendiente', 'confirmado')
-                    AND t.fecha >= CURDATE()
+                    AND TIMESTAMP(t.fecha, t.hora) >= NOW()
                     ORDER BY t.fecha ASC, t.hora ASC";
 
     $stmtProximos = $conn->prepare($sqlProximos);
@@ -59,7 +61,7 @@ try {
                     WHERE t.usuario_id = :usuario_id
                     AND (
                         t.estado IN ('cancelado', 'completado', 'ausente')
-                        OR t.fecha < CURDATE()
+                        OR TIMESTAMP(t.fecha, t.hora) < NOW()
                     )
                     ORDER BY t.fecha DESC, t.hora DESC
                     LIMIT 20";
@@ -68,6 +70,8 @@ try {
     $stmtHistorial->bindParam(":usuario_id", $usuarioId, PDO::PARAM_INT);
     $stmtHistorial->execute();
     $historialTurnos = $stmtHistorial->fetchAll(PDO::FETCH_ASSOC);
+
+    $restriccionUsuario = turnos_restriccion_usuario($conn, (int) $usuarioId);
 
 } catch (PDOException $e) {
     $proximosTurnos = [];
@@ -109,7 +113,8 @@ function badgeEstadoUsuario($estado) {
 
     <title>Mi cuenta | Haedo Barber</title>
 
-    <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
+    <link rel="icon" type="image/png" href="../assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png?v=2">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
           rel="stylesheet">
@@ -132,8 +137,7 @@ function badgeEstadoUsuario($estado) {
         <div>
 
             <div class="admin-brand">
-                <span class="brand-el">HAEDO</span>
-                <span class="brand-filo"> BARBER</span>
+                <img src="../assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-admin" width="800" height="298">
             </div>
 
             <nav class="admin-menu">
@@ -221,7 +225,15 @@ function badgeEstadoUsuario($estado) {
             <div class="alert mb-4"
                  style="background:#2a1111;border:1px solid #6b2c2c;color:#e8a0a0;border-radius:2px">
                 <i class="bi bi-exclamation-triangle me-2"></i>
-                No se pudo realizar la operación.
+                <?php echo htmlspecialchars(turnos_mensaje_error((string) $error) ?? "No se pudo realizar la operación."); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($restriccionUsuario === "usuario_bloqueado_ausencias"): ?>
+            <div class="alert mb-4"
+                 style="background:#2a1f0d;border:1px solid #8b6a1a;color:#f0ede8;border-radius:2px">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <?php echo htmlspecialchars(turnos_mensaje_error($restriccionUsuario)); ?>
             </div>
         <?php endif; ?>
 
@@ -355,12 +367,16 @@ function badgeEstadoUsuario($estado) {
                                     </td>
 
                                     <td>
-                                        <button type="button"
-                                                class="btn admin-btn-danger btn-sm"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#cancelarTurnoModal<?php echo $turno["id"]; ?>">
-                                            Cancelar
-                                        </button>
+                                        <?php if (turnos_ts($turno["fecha"], substr($turno["hora"], 0, 5)) - time() >= TURNOS_CANCEL_MIN_HORAS * 3600): ?>
+                                            <button type="button"
+                                                    class="btn admin-btn-danger btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#cancelarTurnoModal<?php echo $turno["id"]; ?>">
+                                                Cancelar
+                                            </button>
+                                        <?php else: ?>
+                                            <small>No se puede cancelar online con menos de <?php echo (int) TURNOS_CANCEL_MIN_HORAS; ?> h. Contactá a la barbería.</small>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
 
@@ -407,7 +423,7 @@ function badgeEstadoUsuario($estado) {
                                                 </button>
 
                                                 <form action="../../controllers/TurnoController.php"
-                                                    method="POST">
+                                                    method="POST"><?= csrf_field() ?>
 
                                                     <input type="hidden"
                                                         name="accion"
@@ -530,6 +546,7 @@ function badgeEstadoUsuario($estado) {
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/panel.js"></script>
 
 </body>
 </html>

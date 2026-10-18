@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config/security.php';
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: ../login.php");
@@ -12,6 +12,7 @@ if ($_SESSION["usuario_rol"] !== "admin") {
 }
 
 require_once '../../config/database.php';
+require_once '../../config/turnos_helper.php';
 
 $nombreAdmin = $_SESSION["usuario_nombre"];
 $emailAdmin = $_SESSION["usuario_email"];
@@ -19,8 +20,14 @@ $emailAdmin = $_SESSION["usuario_email"];
 $buscar = trim($_GET["buscar"] ?? "");
 $estadoFiltro = $_GET["estado"] ?? "";
 $fechaFiltro = $_GET["fecha"] ?? "";
-$sedeFiltro = $_GET["sede_id"] ?? "";
-$barberoFiltro = $_GET["barbero_id"] ?? "";
+$sedeFiltro = (string) (turnos_id((string) ($_GET["sede_id"] ?? "")) ?? "");
+$barberoFiltro = (string) (turnos_id((string) ($_GET["barbero_id"] ?? "")) ?? "");
+if (!in_array($estadoFiltro, ["pendiente", "confirmado", "cancelado", "completado", "ausente"], true)) {
+    $estadoFiltro = "";
+}
+if (!turnos_fecha_valida((string) $fechaFiltro)) {
+    $fechaFiltro = "";
+}
 $success = $_GET["success"] ?? "";
 $error = $_GET["error"] ?? "";
 
@@ -166,7 +173,8 @@ function badgeEstado($estado) {
 
   <title>Turnos | Panel Admin</title>
 
-  <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png?v=2">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
@@ -189,8 +197,7 @@ function badgeEstado($estado) {
     <div>
 
       <div class="admin-brand">
-        <span class="brand-el">HAEDO</span>
-        <span class="brand-filo"> BARBER</span>
+        <img src="../assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-admin" width="800" height="298">
       </div>
 
       <nav class="admin-menu">
@@ -331,11 +338,21 @@ function badgeEstado($estado) {
         </div>
       <?php endif; ?>
 
-      <?php if ($error === "datos_invalidos" || $error === "accion_invalida" || $error === "db_error"): ?>
+      <?php
+        $mensajesError = [
+          "datos_invalidos" => "No se pudo actualizar el turno: datos inválidos.",
+          "accion_invalida" => "No se pudo actualizar el turno: acción inválida.",
+          "db_error" => "No se pudo actualizar el turno por un error de base de datos.",
+          "turno_inexistente" => "El turno ya no existe.",
+          "transicion_invalida" => "Ese cambio de estado no es válido para el estado actual del turno.",
+          "turno_futuro" => "No se puede marcar como completado o ausente un turno que todavía no comenzó.",
+        ];
+      ?>
+      <?php if (isset($mensajesError[$error])): ?>
         <div class="alert mb-4"
              style="background:#2a1111;border:1px solid #6b2c2c;color:#e8a0a0;border-radius:2px">
           <i class="bi bi-exclamation-triangle me-2"></i>
-          No se pudo actualizar el turno.
+          <?php echo htmlspecialchars($mensajesError[$error]); ?>
         </div>
       <?php endif; ?>
 
@@ -589,7 +606,7 @@ function badgeEstado($estado) {
 
                           <?php if ($turno["estado"] === "pendiente"): ?>
                             <form action="../../controllers/AdminTurnoController.php"
-                                  method="POST">
+                                  method="POST"><?= csrf_field() ?>
 
                               <input type="hidden"
                                      name="accion"
@@ -609,7 +626,7 @@ function badgeEstado($estado) {
 
                           <?php if ($turno["estado"] === "pendiente" || $turno["estado"] === "confirmado"): ?>
                             <form action="../../controllers/AdminTurnoController.php"
-                                  method="POST">
+                                  method="POST"><?= csrf_field() ?>
 
                               <input type="hidden"
                                      name="accion"
@@ -627,9 +644,10 @@ function badgeEstado($estado) {
                             </form>
                           <?php endif; ?>
 
-                          <?php if ($turno["estado"] === "confirmado"): ?>
+                          <?php if (($turno["estado"] === "confirmado" || $turno["estado"] === "pendiente")
+                                    && turnos_ts($turno["fecha"], substr($turno["hora"], 0, 5)) <= time()): ?>
                             <form action="../../controllers/AdminTurnoController.php"
-                                  method="POST">
+                                  method="POST"><?= csrf_field() ?>
 
                               <input type="hidden"
                                      name="accion"
@@ -647,7 +665,7 @@ function badgeEstado($estado) {
                             </form>
 
                             <form action="../../controllers/AdminTurnoController.php"
-                                  method="POST">
+                                  method="POST"><?= csrf_field() ?>
 
                               <input type="hidden"
                                      name="accion"
@@ -696,6 +714,7 @@ function badgeEstado($estado) {
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/panel.js"></script>
 
 </body>
 </html>

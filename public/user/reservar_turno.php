@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config/security.php';
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: ../login.php");
@@ -7,18 +7,26 @@ if (!isset($_SESSION["usuario_id"])) {
 }
 
 require_once '../../config/database.php';
+require_once '../../config/turnos_helper.php';
 
 $usuarioId = $_SESSION["usuario_id"];
 $nombreUsuario = $_SESSION["usuario_nombre"] ?? "Usuario";
 $emailUsuario = $_SESSION["usuario_email"] ?? "";
 
-$sedeSeleccionada = $_GET["sede_id"] ?? "";
-$barberoSeleccionado = $_GET["barbero_id"] ?? "";
-$servicioSeleccionado = $_GET["servicio_id"] ?? "";
-$fechaSeleccionada = $_GET["fecha"] ?? "";
+// Los IDs se normalizan a enteros positivos (cualquier otro valor se descarta).
+$sedeSeleccionada = (string) (turnos_id((string) ($_GET["sede_id"] ?? "")) ?? "");
+$barberoSeleccionado = (string) (turnos_id((string) ($_GET["barbero_id"] ?? "")) ?? "");
+$servicioSeleccionado = (string) (turnos_id((string) ($_GET["servicio_id"] ?? "")) ?? "");
+$fechaSeleccionada = (string) ($_GET["fecha"] ?? "");
+if (!turnos_fecha_valida($fechaSeleccionada)) {
+    $fechaSeleccionada = "";
+}
 
 $horariosDisponibles = [];
+$errorDia = null;
+$restriccionUsuario = null;
 $errorDB = false;
+$ahora = time();
 
 try {
     $stmtSedes = $conn->prepare("SELECT id, nombre, direccion FROM sedes WHERE activo = 1 ORDER BY nombre ASC");
@@ -39,63 +47,31 @@ try {
     }
 
     if ($sedeSeleccionada !== "" && $barberoSeleccionado !== "" && $servicioSeleccionado !== "" && $fechaSeleccionada !== "") {
-        $diaSemana = date("N", strtotime($fechaSeleccionada));
+        $errorDia = turnos_validar_dia($fechaSeleccionada, $ahora);
 
-        if ($diaSemana >= 2 && $diaSemana <= 6 && $fechaSeleccionada >= date("Y-m-d")) {
+        if ($errorDia === null) {
+            // El barbero debe pertenecer a la sede elegida y estar activo.
+            $stmtBarberoOk = $conn->prepare("SELECT COUNT(*) FROM barberos WHERE id = :b AND sede_id = :s AND activo = 1");
+            $stmtBarberoOk->execute([":b" => $barberoSeleccionado, ":s" => $sedeSeleccionada]);
+
             $stmtServicio = $conn->prepare("SELECT duracion_min FROM servicios WHERE id = :id AND activo = 1");
             $stmtServicio->bindParam(":id", $servicioSeleccionado, PDO::PARAM_INT);
             $stmtServicio->execute();
             $servicioActual = $stmtServicio->fetch(PDO::FETCH_ASSOC);
 
-            if ($servicioActual) {
-                $duracionNueva = intval($servicioActual["duracion_min"]);
-
-                $bloquesTrabajo = [
-                    ["10:30", "13:00"],
-                    ["14:30", "20:00"]
-                ];
-
-                $stmtTurnos = $conn->prepare("SELECT 
-                                                t.hora,
-                                                sv.duracion_min
-                                              FROM turnos t
-                                              INNER JOIN servicios sv ON t.servicio_id = sv.id
-                                              WHERE t.barbero_id = :barbero_id
-                                              AND t.fecha = :fecha
-                                              AND t.estado IN ('pendiente', 'confirmado')");
-
-                $stmtTurnos->bindParam(":barbero_id", $barberoSeleccionado, PDO::PARAM_INT);
-                $stmtTurnos->bindParam(":fecha", $fechaSeleccionada);
-                $stmtTurnos->execute();
-                $turnosOcupados = $stmtTurnos->fetchAll(PDO::FETCH_ASSOC);
-
-                foreach ($bloquesTrabajo as $bloque) {
-                    $inicioBloque = strtotime($fechaSeleccionada . " " . $bloque[0]);
-                    $finBloque = strtotime($fechaSeleccionada . " " . $bloque[1]);
-
-                    for ($slot = $inicioBloque; $slot + ($duracionNueva * 60) <= $finBloque; $slot += 30 * 60) {
-                        $inicioNuevo = $slot;
-                        $finNuevo = $slot + ($duracionNueva * 60);
-                        $disponible = true;
-
-                        foreach ($turnosOcupados as $turnoOcupado) {
-                            $inicioExistente = strtotime($fechaSeleccionada . " " . $turnoOcupado["hora"]);
-                            $finExistente = $inicioExistente + (intval($turnoOcupado["duracion_min"]) * 60);
-
-                            if ($inicioNuevo < $finExistente && $finNuevo > $inicioExistente) {
-                                $disponible = false;
-                                break;
-                            }
-                        }
-
-                        if ($disponible) {
-                            $horariosDisponibles[] = date("H:i", $slot);
-                        }
-                    }
-                }
+            if ($servicioActual && (int) $stmtBarberoOk->fetchColumn() === 1) {
+                // Misma lógica (turnos_validar_horario) que usa el controller al crear el turno.
+                $horariosDisponibles = turnos_slots_disponibles(
+                    $fechaSeleccionada,
+                    intval($servicioActual["duracion_min"]),
+                    turnos_ocupados_barbero($conn, (int) $barberoSeleccionado, $fechaSeleccionada),
+                    $ahora
+                );
             }
         }
     }
+
+    $restriccionUsuario = turnos_restriccion_usuario($conn, (int) $usuarioId);
 
 } catch (PDOException $e) {
     $sedes = [];
@@ -114,7 +90,8 @@ try {
 
     <title>Reservar turno | Haedo Barber</title>
 
-    <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
+    <link rel="icon" type="image/png" href="../assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png?v=2">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
           rel="stylesheet">
@@ -136,8 +113,7 @@ try {
     <aside class="admin-sidebar">
         <div>
             <div class="admin-brand">
-                <span class="brand-el">HAEDO</span>
-                <span class="brand-filo"> BARBER</span>
+                <img src="../assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-admin" width="800" height="298">
             </div>
 
             <nav class="admin-menu">
@@ -209,39 +185,28 @@ try {
             <?php else: ?>
 
                 <?php
-                $error = $_GET["error"] ?? "";
+                // Solo se muestran mensajes de una lista conocida (nunca texto arbitrario de la URL).
+                $mensajeError = turnos_mensaje_error((string) ($_GET["error"] ?? ""));
                 ?>
 
-                <?php if ($error === "usuario_turno_superpuesto"): ?>
+                <?php if ($mensajeError !== null): ?>
                     <div class="alert mb-4"
                         style="background:#2a1111;border:1px solid #8b1a1a;color:#f0ede8;border-radius:2px">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        Ya tenés un turno activo que se superpone con ese horario.
+                        <?php echo htmlspecialchars($mensajeError); ?>
                     </div>
                 <?php endif; ?>
 
-                <?php if ($error === "horario_ocupado"): ?>
+                <?php if ($restriccionUsuario !== null && $mensajeError === null): ?>
                     <div class="alert mb-4"
-                        style="background:#2a1111;border:1px solid #8b1a1a;color:#f0ede8;border-radius:2px">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        Ese horario ya fue reservado. Elegí otro disponible.
+                        style="background:#2a1f0d;border:1px solid #8b6a1a;color:#f0ede8;border-radius:2px">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <?php echo htmlspecialchars(turnos_mensaje_error($restriccionUsuario) ?? ""); ?>
                     </div>
                 <?php endif; ?>
 
-                <?php if ($error === "fecha_pasada"): ?>
-                    <div class="alert mb-4"
-                        style="background:#2a1111;border:1px solid #8b1a1a;color:#f0ede8;border-radius:2px">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        No podés reservar una fecha pasada.
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($error === "dia_cerrado"): ?>
-                    <div class="alert mb-4"
-                        style="background:#2a1111;border:1px solid #8b1a1a;color:#f0ede8;border-radius:2px">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        La barbería permanece cerrada domingos y lunes.
-                    </div>
+                <?php if (empty($sedes) || empty($servicios)): ?>
+                    <div class="alert alert-info">Todavía no hay sedes o servicios cargados. Volvé a intentar más tarde.</div>
                 <?php endif; ?>
 
                 <form method="GET" class="row g-3">
@@ -286,7 +251,7 @@ try {
                         <label class="form-label">Servicio</label>
                         <select name="servicio_id"
                                 class="form-control"
-                                required
+                                required>
                             <option value="">Seleccionar servicio</option>
 
                             <?php foreach ($servicios as $servicio): ?>
@@ -306,6 +271,7 @@ try {
                             name="fecha"
                             class="form-control"
                             min="<?php echo date("Y-m-d"); ?>"
+                            max="<?php echo date("Y-m-d", $ahora + TURNOS_ANTICIPACION_MAX_DIAS * 86400); ?>"
                             value="<?php echo htmlspecialchars($fechaSeleccionada); ?>"
                             required>
                     </div>
@@ -337,22 +303,18 @@ try {
                     </div>
                 </div>
 
-                <?php
-                    $diaSemanaSeleccionado = date("N", strtotime($fechaSeleccionada));
-                ?>
-
-                <?php if ($fechaSeleccionada < date("Y-m-d")): ?>
+                <?php if ($restriccionUsuario !== null): ?>
 
                     <div class="admin-empty-state">
-                        <i class="bi bi-calendar-x"></i>
-                        <p>No podés reservar una fecha pasada.</p>
+                        <i class="bi bi-hourglass-split"></i>
+                        <p><?php echo htmlspecialchars(turnos_mensaje_error($restriccionUsuario) ?? ""); ?></p>
                     </div>
 
-                <?php elseif ($diaSemanaSeleccionado == 1 || $diaSemanaSeleccionado == 7): ?>
+                <?php elseif ($errorDia !== null): ?>
 
                     <div class="admin-empty-state">
-                        <i class="bi bi-door-closed"></i>
-                        <p>La barbería permanece cerrada domingos y lunes.</p>
+                        <i class="bi <?php echo $errorDia === "dia_cerrado" ? "bi-door-closed" : "bi-calendar-x"; ?>"></i>
+                        <p><?php echo htmlspecialchars(turnos_mensaje_error($errorDia) ?? "La fecha elegida no es válida."); ?></p>
                     </div>
 
                 <?php elseif (empty($horariosDisponibles)): ?>
@@ -365,7 +327,7 @@ try {
                 <?php else: ?>
 
                     <form action="../../controllers/TurnoController.php"
-                          method="POST">
+                          method="POST"><?= csrf_field() ?>
 
                         <input type="hidden" name="accion" value="crear">
                         <input type="hidden" name="sede_id" value="<?php echo htmlspecialchars($sedeSeleccionada); ?>">
@@ -400,6 +362,7 @@ try {
 
                             <textarea name="observaciones"
                                       class="form-control"
+                                      maxlength="<?php echo (int) TURNOS_OBS_MAX; ?>"
                                       rows="3"
                                       placeholder="Ej: prefiero corte bajo, llegaré 5 minutos antes, etc."></textarea>
                         </div>
@@ -421,6 +384,7 @@ try {
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/panel.js"></script>
 
 </body>
 </html>

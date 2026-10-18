@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/security.php';
 
-require_once '../config/database.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/turnos_helper.php';
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: ../public/login.php");
@@ -13,233 +14,253 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
-$accion = $_POST["accion"] ?? "";
-$usuarioId = $_SESSION["usuario_id"];
+csrf_verify();
 
+$accion = $_POST["accion"] ?? "";
+$usuarioId = turnos_id((string) $_SESSION["usuario_id"]);
+
+if ($usuarioId === null) {
+    header("Location: ../public/login.php");
+    exit;
+}
+
+$ip = turnos_ip_cliente();
+
+/* ------------------------------ Cancelar (usuario) ------------------------------ */
 if ($accion === "cancelar_usuario") {
 
-    $id = $_POST["id"] ?? "";
+    $panel = "../public/user/panel_usuario.php";
+    $id = turnos_id($_POST["id"] ?? "");
 
-    if (empty($id) || !is_numeric($id)) {
-        header("Location: ../public/user/panel_usuario.php?error=datos_invalidos");
+    if ($id === null) {
+        header("Location: $panel?error=datos_invalidos");
         exit;
     }
 
     try {
-        $sql = "UPDATE turnos
-                SET estado = 'cancelado'
-                WHERE id = :id
-                AND usuario_id = :usuario_id
-                AND estado IN ('pendiente', 'confirmado')";
+        $conn->beginTransaction();
 
-        $stmt = $conn->prepare($sql);
-        $stmt->bindParam(":id", $id, PDO::PARAM_INT);
-        $stmt->bindParam(":usuario_id", $usuarioId, PDO::PARAM_INT);
-        $stmt->execute();
+        $stmt = $conn->prepare("SELECT id, fecha, hora, estado
+                                FROM turnos
+                                WHERE id = :id AND usuario_id = :usuario_id
+                                FOR UPDATE");
+        $stmt->execute([":id" => $id, ":usuario_id" => $usuarioId]);
+        $turno = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        header("Location: ../public/user/panel_usuario.php?success=turno_cancelado");
+        $error = null;
+
+        if (!$turno) {
+            $error = "turno_inexistente";
+        } elseif (!in_array($turno["estado"], ["pendiente", "confirmado"], true)) {
+            $error = "turno_no_cancelable";
+        } else {
+            $inicio = turnos_ts($turno["fecha"], substr($turno["hora"], 0, 5));
+            if ($inicio - time() < TURNOS_CANCEL_MIN_HORAS * 3600) {
+                $error = "cancelacion_tardia";
+            } elseif (turnos_cancelaciones_recientes($conn, $usuarioId) >= TURNOS_CANCEL_MAX) {
+                $error = "limite_cancelaciones";
+            }
+        }
+
+        if ($error !== null) {
+            $conn->rollBack();
+            header("Location: $panel?error=$error");
+            exit;
+        }
+
+        $upd = $conn->prepare("UPDATE turnos SET estado = 'cancelado'
+                               WHERE id = :id AND usuario_id = :usuario_id
+                               AND estado IN ('pendiente', 'confirmado')");
+        $upd->execute([":id" => $id, ":usuario_id" => $usuarioId]);
+        $conn->commit();
+
+        turnos_log_intento($conn, $ip, $usuarioId, "cancelar", true);
+
+        header("Location: $panel?success=turno_cancelado");
         exit;
 
     } catch (PDOException $e) {
-        header("Location: ../public/user/panel_usuario.php?error=db_error");
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
+        error_log("Haedo Barber: error cancelando turno: " . $e->getMessage());
+        header("Location: $panel?error=db_error");
         exit;
     }
 }
 
+/* ------------------------------ Crear ------------------------------ */
 if ($accion === "crear") {
 
-    $sedeId = $_POST["sede_id"] ?? "";
-    $barberoId = $_POST["barbero_id"] ?? "";
-    $servicioId = $_POST["servicio_id"] ?? "";
-    $fecha = $_POST["fecha"] ?? "";
-    $hora = $_POST["hora"] ?? "";
-    $observaciones = trim($_POST["observaciones"] ?? "");
+    $sel = [
+        "sede_id" => (string) ($_POST["sede_id"] ?? ""),
+        "barbero_id" => (string) ($_POST["barbero_id"] ?? ""),
+        "servicio_id" => (string) ($_POST["servicio_id"] ?? ""),
+        "fecha" => (string) ($_POST["fecha"] ?? ""),
+    ];
+    $hora = trim((string) ($_POST["hora"] ?? ""));
+    $observaciones = trim((string) ($_POST["observaciones"] ?? ""));
 
-    if (
-        empty($sedeId) ||
-        empty($barberoId) ||
-        empty($servicioId) ||
-        empty($fecha) ||
-        empty($hora)
-    ) {
-        header("Location: ../public/user/reservar_turno.php?error=campos_vacios");
+    $volver = function (string $error) use ($sel) {
+        header("Location: " . turnos_url_reserva("../public/user/", $error, $sel));
         exit;
-    }
-
-    if (
-        !is_numeric($sedeId) ||
-        !is_numeric($barberoId) ||
-        !is_numeric($servicioId)
-    ) {
-        header("Location: ../public/user/reservar_turno.php?error=datos_invalidos");
-        exit;
-    }
-
-    if ($fecha < date("Y-m-d")) {
-        header("Location: ../public/user/reservar_turno.php?error=fecha_pasada");
-        exit;
-    }
-
-    $diaSemana = date("N", strtotime($fecha));
-
-    if ($diaSemana == 1 || $diaSemana == 7) {
-        header("Location: ../public/user/reservar_turno.php?error=dia_cerrado");
-        exit;
-    }
+    };
 
     try {
-        $sqlValidar = "SELECT
-                            b.id AS barbero_id,
-                            b.sede_id,
-                            sv.id AS servicio_id,
-                            sv.duracion_min
-                       FROM barberos b
-                       INNER JOIN servicios sv ON sv.id = :servicio_id
-                       WHERE b.id = :barbero_id
-                       AND b.sede_id = :sede_id
-                       AND b.activo = 1
-                       AND sv.activo = 1";
+        // 1) Rate limiting por IP y por cuenta (antes de hacer cualquier otro trabajo).
+        $limite = turnos_rate_limit($conn, $ip, $usuarioId, "crear");
+        if ($limite !== null) {
+            $volver($limite);
+        }
+        $intentoId = turnos_log_intento($conn, $ip, $usuarioId, "crear", false);
 
-        $stmtValidar = $conn->prepare($sqlValidar);
-        $stmtValidar->bindParam(":servicio_id", $servicioId, PDO::PARAM_INT);
-        $stmtValidar->bindParam(":barbero_id", $barberoId, PDO::PARAM_INT);
-        $stmtValidar->bindParam(":sede_id", $sedeId, PDO::PARAM_INT);
-        $stmtValidar->execute();
+        // 2) Datos básicos
+        if ($sel["sede_id"] === "" || $sel["barbero_id"] === "" || $sel["servicio_id"] === "" || $sel["fecha"] === "" || $hora === "") {
+            $volver("campos_vacios");
+        }
 
+        $sedeId = turnos_id($sel["sede_id"]);
+        $barberoId = turnos_id($sel["barbero_id"]);
+        $servicioId = turnos_id($sel["servicio_id"]);
+
+        if ($sedeId === null || $barberoId === null || $servicioId === null) {
+            $volver("datos_invalidos");
+        }
+
+        if (mb_strlen($observaciones, "UTF-8") > TURNOS_OBS_MAX) {
+            $volver("observaciones_largas");
+        }
+        // Sin caracteres de control (salvo saltos de línea)
+        $observaciones = preg_replace('/[^\P{C}\n]/u', "", $observaciones) ?? "";
+
+        // 3) Restricciones de la cuenta (cuenta nueva, ausencias)
+        $restriccion = turnos_restriccion_usuario($conn, $usuarioId);
+        if ($restriccion !== null) {
+            $volver($restriccion);
+        }
+
+        // 4) Sede / barbero / servicio válidos y activos
+        $stmtValidar = $conn->prepare("SELECT sv.duracion_min
+                                       FROM barberos b
+                                       INNER JOIN sedes s ON s.id = b.sede_id AND s.activo = 1
+                                       INNER JOIN servicios sv ON sv.id = :servicio_id AND sv.activo = 1
+                                       WHERE b.id = :barbero_id
+                                       AND b.sede_id = :sede_id
+                                       AND b.activo = 1");
+        $stmtValidar->execute([
+            ":servicio_id" => $servicioId,
+            ":barbero_id" => $barberoId,
+            ":sede_id" => $sedeId,
+        ]);
         $datosReserva = $stmtValidar->fetch(PDO::FETCH_ASSOC);
 
         if (!$datosReserva) {
-            header("Location: ../public/user/reservar_turno.php?error=datos_invalidos");
-            exit;
+            $volver("datos_invalidos");
         }
 
         $duracionNueva = intval($datosReserva["duracion_min"]);
+        $fecha = $sel["fecha"];
 
-        $bloquesTrabajo = [
-            ["10:30", "13:00"],
-            ["14:30", "20:00"]
-        ];
-
-        $inicioNuevo = strtotime($fecha . " " . $hora);
-        $finNuevo = $inicioNuevo + ($duracionNueva * 60);
-
-        $dentroDeHorario = false;
-
-        foreach ($bloquesTrabajo as $bloque) {
-            $inicioBloque = strtotime($fecha . " " . $bloque[0]);
-            $finBloque = strtotime($fecha . " " . $bloque[1]);
-
-            if ($inicioNuevo >= $inicioBloque && $finNuevo <= $finBloque) {
-                $dentroDeHorario = true;
-                break;
-            }
+        // 5) Fecha/hora: misma validación que usa la grilla de disponibilidad
+        $errHorario = turnos_validar_horario($fecha, $hora, $duracionNueva, time());
+        if ($errHorario !== null) {
+            $volver($errHorario);
         }
 
-        if (!$dentroDeHorario) {
-            header("Location: ../public/user/reservar_turno.php?error=horario_invalido");
+        $inicioNuevo = turnos_ts($fecha, $hora);
+        $finNuevo = $inicioNuevo + ($duracionNueva * 60);
+
+        // 6) Transacción: se bloquea la cuenta y el barbero para serializar reservas concurrentes
+        $conn->beginTransaction();
+
+        $stmtLockU = $conn->prepare("SELECT id FROM usuarios WHERE id = :id FOR UPDATE");
+        $stmtLockU->execute([":id" => $usuarioId]);
+        if (!$stmtLockU->fetchColumn()) {
+            $conn->rollBack();
+            header("Location: ../public/login.php");
             exit;
         }
 
-        $stmtTurnosUsuario = $conn->prepare("SELECT
-                                                t.hora,
-                                                sv.duracion_min
-                                             FROM turnos t
-                                             INNER JOIN servicios sv ON t.servicio_id = sv.id
-                                             WHERE t.usuario_id = :usuario_id
-                                             AND t.fecha = :fecha
-                                             AND t.estado IN ('pendiente', 'confirmado')");
+        $stmtLock = $conn->prepare("SELECT id FROM barberos WHERE id = :id FOR UPDATE");
+        $stmtLock->execute([":id" => $barberoId]);
 
-        $stmtTurnosUsuario->bindParam(":usuario_id", $usuarioId, PDO::PARAM_INT);
-        $stmtTurnosUsuario->bindParam(":fecha", $fecha);
-        $stmtTurnosUsuario->execute();
+        $errUsuario = turnos_validar_limites_usuario($conn, $usuarioId, $fecha, $inicioNuevo, $finNuevo);
+        if ($errUsuario !== null) {
+            $conn->rollBack();
+            $volver($errUsuario);
+        }
 
-        $turnosUsuario = $stmtTurnosUsuario->fetchAll(PDO::FETCH_ASSOC);
+        foreach (turnos_ocupados_barbero($conn, $barberoId, $fecha) as $ocupado) {
+            $iniEx = turnos_ts($fecha, substr($ocupado["hora"], 0, 5));
+            $finEx = $iniEx + (intval($ocupado["duracion_min"]) * 60);
 
-        foreach ($turnosUsuario as $turnoUsuario) {
-            $inicioExistenteUsuario = strtotime($fecha . " " . $turnoUsuario["hora"]);
-            $finExistenteUsuario = $inicioExistenteUsuario + (intval($turnoUsuario["duracion_min"]) * 60);
-
-            if ($inicioNuevo < $finExistenteUsuario && $finNuevo > $inicioExistenteUsuario) {
-                header("Location: ../public/user/reservar_turno.php?error=usuario_turno_superpuesto");
-                exit;
+            if (turnos_solapan($inicioNuevo, $finNuevo, $iniEx, $finEx)) {
+                $conn->rollBack();
+                $volver("horario_ocupado");
             }
         }
 
-        $stmtTurnos = $conn->prepare("SELECT
-                                        t.hora,
-                                        sv.duracion_min
-                                      FROM turnos t
-                                      INNER JOIN servicios sv ON t.servicio_id = sv.id
-                                      WHERE t.barbero_id = :barbero_id
-                                      AND t.fecha = :fecha
-                                      AND t.estado IN ('pendiente', 'confirmado')");
-
-        $stmtTurnos->bindParam(":barbero_id", $barberoId, PDO::PARAM_INT);
-        $stmtTurnos->bindParam(":fecha", $fecha);
-        $stmtTurnos->execute();
-
-        $turnosOcupados = $stmtTurnos->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($turnosOcupados as $turnoOcupado) {
-            $inicioExistente = strtotime($fecha . " " . $turnoOcupado["hora"]);
-            $finExistente = $inicioExistente + (intval($turnoOcupado["duracion_min"]) * 60);
-
-            if ($inicioNuevo < $finExistente && $finNuevo > $inicioExistente) {
-                header("Location: ../public/user/reservar_turno.php?error=horario_ocupado");
-                exit;
-            }
-        }
-
-        $sqlCrear = "INSERT INTO turnos
+        $stmtCrear = $conn->prepare("INSERT INTO turnos
                         (usuario_id, sede_id, barbero_id, servicio_id, fecha, hora, estado, observaciones)
                      VALUES
-                        (:usuario_id, :sede_id, :barbero_id, :servicio_id, :fecha, :hora, 'pendiente', :observaciones)";
+                        (:usuario_id, :sede_id, :barbero_id, :servicio_id, :fecha, :hora, 'pendiente', :observaciones)");
+        $stmtCrear->execute([
+            ":usuario_id" => $usuarioId,
+            ":sede_id" => $sedeId,
+            ":barbero_id" => $barberoId,
+            ":servicio_id" => $servicioId,
+            ":fecha" => $fecha,
+            ":hora" => $hora,
+            ":observaciones" => $observaciones,
+        ]);
+        $conn->commit();
 
-        $stmtCrear = $conn->prepare($sqlCrear);
+        turnos_marcar_exito($conn, $intentoId);
 
-        $stmtCrear->bindParam(":usuario_id", $usuarioId, PDO::PARAM_INT);
-        $stmtCrear->bindParam(":sede_id", $sedeId, PDO::PARAM_INT);
-        $stmtCrear->bindParam(":barbero_id", $barberoId, PDO::PARAM_INT);
-        $stmtCrear->bindParam(":servicio_id", $servicioId, PDO::PARAM_INT);
-        $stmtCrear->bindParam(":fecha", $fecha);
-        $stmtCrear->bindParam(":hora", $hora);
-        $stmtCrear->bindParam(":observaciones", $observaciones);
+    } catch (PDOException $e) {
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
+        // 1062 = clave duplicada: otro usuario tomó el horario justo antes.
+        if (isset($e->errorInfo[1]) && (int) $e->errorInfo[1] === 1062) {
+            $volver("horario_ocupado");
+        }
+        error_log("Haedo Barber: error creando turno: " . $e->getMessage());
+        $volver("db_error");
+    }
 
-        $stmtCrear->execute();
-        // ENVÍO DE CORREO DE CONFIRMACIÓN ---
-        require_once '../services/Emailservice.php';
+    // Correo de confirmación: el turno ya está creado, un fallo de mail no debe afectar el resultado.
+    try {
+        require_once __DIR__ . '/../services/EmailService.php';
 
-        //  Obtener el email del usuario usando su ID
-        $stmtUser = $conn->prepare("SELECT nombre, email FROM usuarios WHERE id = :id"); //
-        $stmtUser->execute([':id' => $usuarioId]); //
+        $stmtUser = $conn->prepare("SELECT nombre, email FROM usuarios WHERE id = :id");
+        $stmtUser->execute([":id" => $usuarioId]);
         $userData = $stmtUser->fetch(PDO::FETCH_ASSOC);
 
-        //  Obtener el nombre de la sede y el servicio para el correo
-        $stmtSede = $conn->prepare("SELECT nombre FROM sedes WHERE id = :id"); //
-        $stmtSede->execute([':id' => $sedeId]); //
+        $stmtSede = $conn->prepare("SELECT nombre FROM sedes WHERE id = :id");
+        $stmtSede->execute([":id" => $sedeId]);
         $nombreSede = $stmtSede->fetchColumn();
 
-        $stmtServ = $conn->prepare("SELECT nombre FROM servicios WHERE id = :id"); //
-        $stmtServ->execute([':id' => $servicioId]); //
+        $stmtServ = $conn->prepare("SELECT nombre FROM servicios WHERE id = :id");
+        $stmtServ->execute([":id" => $servicioId]);
         $nombreServicio = $stmtServ->fetchColumn();
 
-        if ($userData && $userData['email']) {
+        if ($userData && $userData["email"]) {
             EmailService::enviarConfirmacion(
-                $userData['email'], 
-                $userData['nombre'], 
-                $fecha, //
-                $hora,  //
-                $nombreSede, 
+                $userData["email"],
+                $userData["nombre"],
+                $fecha,
+                $hora,
+                $nombreSede,
                 $nombreServicio
             );
         }
-        header("Location: ../public/user/panel_usuario.php?success=turno_creado");
-        exit;
-
-    } catch (PDOException $e) {
-        header("Location: ../public/user/reservar_turno.php?error=db_error");
-        exit;
+    } catch (\Throwable $e) {
+        error_log("Haedo Barber: error enviando confirmación: " . $e->getMessage());
     }
+
+    header("Location: ../public/user/panel_usuario.php?success=turno_creado");
+    exit;
 }
 
 header("Location: ../public/user/panel_usuario.php");
