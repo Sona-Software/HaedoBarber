@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../config/security.php';
 $error = $_GET['error'] ?? '';
 ?>
 
@@ -8,7 +9,8 @@ $error = $_GET['error'] ?? '';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registrarse | Haedo Barber</title>
-  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
@@ -19,7 +21,7 @@ $error = $_GET['error'] ?? '';
   <nav class="navbar navbar-dark fixed-top py-3" style="background:rgba(10,10,10,0.95);border-bottom:1px solid var(--border)">
     <div class="container">
       <a class="navbar-brand" href="index.php">
-        <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
+        <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo" width="800" height="298">
       </a>
       <a href="index.php" class="btn btn-outline-gold btn-sm">← Volver al inicio</a>
     </div>
@@ -44,14 +46,22 @@ $error = $_GET['error'] ?? '';
           <?php
             if ($error === 'terminos_no_aceptados') {
               echo 'Tenés que aceptar los términos y condiciones.';
-            } elseif ($error === 'email_existente') {
-              echo 'Ese email ya está registrado.';
+            } elseif ($error === 'email_existente' || $error === 'registro_fallido') {
+              echo 'No pudimos crear la cuenta con esos datos. Si ya te registraste antes, ingresá desde la página de inicio de sesión.';
+            } elseif ($error === 'demasiados_intentos') {
+              echo 'Demasiados intentos. Esperá un rato antes de volver a intentar.';
+            } elseif ($error === 'telefono_invalido') {
+              echo 'Ingresá un teléfono válido.';
+            } elseif ($error === 'password_larga') {
+              echo 'La contraseña no puede superar los 72 caracteres.';
+            } elseif ($error === 'password_debil') {
+              echo 'La contraseña debe incluir letras y números, y no ser una clave común.';
             } elseif ($error === 'email_invalido') {
               echo 'Ingresá un email válido.';
             } elseif ($error === 'password_no_coincide') {
               echo 'Las contraseñas no coinciden.';
             } elseif ($error === 'password_corta') {
-              echo 'La contraseña debe tener al menos 8 caracteres.';
+              echo 'La contraseña debe tener al menos 10 caracteres.';
             } elseif ($error === 'campos_vacios') {
               echo 'Completá todos los campos obligatorios.';
             } else {
@@ -66,7 +76,7 @@ $error = $_GET['error'] ?? '';
 </div>
 <?php endif; ?>
 
-      <form action="../controllers/AuthController.php" method="POST" id="registerForm" novalidate>
+      <form action="../controllers/AuthController.php" method="POST" id="registerForm" novalidate><?= csrf_field() ?>
         <input type="hidden" name="action" value="register">
 
         <div class="row g-3">
@@ -74,14 +84,14 @@ $error = $_GET['error'] ?? '';
           <div class="col-sm-6">
             <label for="nombre" class="form-label">Nombre</label>
             <input type="text" class="form-control" id="nombre" name="nombre"
-              placeholder="Tu nombre" required minlength="2">
+              placeholder="Tu nombre" required minlength="2" maxlength="80">
             <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá tu nombre.</div>
           </div>
 
           <div class="col-sm-6">
             <label for="apellido" class="form-label">Apellido</label>
             <input type="text" class="form-control" id="apellido" name="apellido"
-              placeholder="Tu apellido" required minlength="2">
+              placeholder="Tu apellido" required minlength="2" maxlength="80">
             <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá tu apellido.</div>
           </div>
 
@@ -100,7 +110,7 @@ $error = $_GET['error'] ?? '';
           <div class="col-sm-6">
             <label for="email" class="form-label">Email</label>
             <input type="email" class="form-control" id="email" name="email"
-              placeholder="tu@email.com" required autocomplete="email">
+              placeholder="tu@email.com" required autocomplete="email" maxlength="120">
             <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá un email válido.</div>
           </div>
 
@@ -113,7 +123,7 @@ $error = $_GET['error'] ?? '';
             <label for="password" class="form-label">Contraseña</label>
             <div class="input-group">
               <input type="password" class="form-control" id="password" name="password"
-                placeholder="Mínimo 8 caracteres" required minlength="8"
+                placeholder="Mínimo 10, con letras y números" required minlength="10" maxlength="72" autocomplete="new-password"
                 style="border-right:none!important">
               <button class="btn" type="button"
                 style="background:var(--bg4);border:1px solid var(--border);border-left:none;color:var(--muted);border-radius:0 2px 2px 0;padding:0 12px"
@@ -190,13 +200,13 @@ $error = $_GET['error'] ?? '';
     const label = document.getElementById('strength-label');
     const wrap = document.getElementById('password-strength-wrap');
 
-    passInput.addEventListener('input', () => {
+    if (passInput && bar && label && wrap) passInput.addEventListener('input', () => {
       const val = passInput.value;
       if (!val) { wrap.style.display = 'none'; return; }
       wrap.style.display = 'block';
 
       let score = 0;
-      if (val.length >= 8) score++;
+      if (val.length >= 10) score++;
       if (/[A-Z]/.test(val)) score++;
       if (/[0-9]/.test(val)) score++;
       if (/[^A-Za-z0-9]/.test(val)) score++;

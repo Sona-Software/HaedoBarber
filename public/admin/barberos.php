@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config/security.php';
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: ../login.php");
@@ -53,7 +53,7 @@ try {
 
 function obtenerRutaFoto($foto) {
     if (empty($foto)) {
-        return "../assets/img/haedobarber-mark.svg";
+        return "../assets/img/apple-touch-icon.png";
     }
 
     if (str_starts_with($foto, "img/")) return "../assets/" . substr($foto, 4);
@@ -71,7 +71,8 @@ function obtenerRutaFoto($foto) {
 
   <title>Barberos | Panel Admin</title>
 
-  <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
 
@@ -93,8 +94,7 @@ function obtenerRutaFoto($foto) {
     <div>
 
       <div class="admin-brand">
-        <span class="brand-el">HAEDO</span>
-        <span class="brand-filo"> BARBER</span>
+        <img src="../assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-admin" width="800" height="298">
       </div>
 
       <nav class="admin-menu">
@@ -144,7 +144,7 @@ function obtenerRutaFoto($foto) {
     </div>
 
     <form action="../../controllers/AuthController.php"
-          method="POST">
+          method="POST"><?= csrf_field() ?>
 
       <input type="hidden"
              name="action"
@@ -293,7 +293,7 @@ function obtenerRutaFoto($foto) {
                 </h4>
 
                 <p class="admin-barber-specialty">
-                  <?php echo htmlspecialchars($barbero["especialidad"]); ?>
+                  <?php echo htmlspecialchars($barbero["especialidad"] ?? ""); ?>
                 </p>
 
                 <p class="admin-barber-branch">
@@ -335,7 +335,7 @@ function obtenerRutaFoto($foto) {
                             alt="Trabajo barbero">
 
                         <form action="../../controllers/AdminBarberoController.php"
-                                method="POST">
+                                method="POST"><?= csrf_field() ?>
 
                             <input type="hidden"
                                 name="accion"
@@ -367,7 +367,7 @@ function obtenerRutaFoto($foto) {
                 <form action="../../controllers/AdminBarberoController.php"
                         method="POST"
                         enctype="multipart/form-data"
-                        class="admin-upload-mini-form">
+                        class="admin-upload-mini-form"><?= csrf_field() ?>
 
                     <input type="hidden"
                         name="accion"
@@ -425,7 +425,7 @@ function obtenerRutaFoto($foto) {
 
                   <form action="../../controllers/AdminBarberoController.php"
                         method="POST"
-                        enctype="multipart/form-data">
+                        enctype="multipart/form-data"><?= csrf_field() ?>
 
                     <input type="hidden"
                            name="accion"
@@ -437,7 +437,7 @@ function obtenerRutaFoto($foto) {
 
                     <input type="hidden"
                            name="foto_actual"
-                           value="<?php echo htmlspecialchars($barbero["foto"]); ?>">
+                           value="<?php echo htmlspecialchars($barbero["foto"] ?? ""); ?>">
 
                     <div class="modal-header">
                       <h5 class="modal-title">
@@ -481,7 +481,7 @@ function obtenerRutaFoto($foto) {
                         <input type="text"
                                name="especialidad"
                                class="form-control"
-                               value="<?php echo htmlspecialchars($barbero["especialidad"]); ?>"
+                               value="<?php echo htmlspecialchars($barbero["especialidad"] ?? ""); ?>"
                                required>
                       </div>
 
@@ -581,7 +581,7 @@ function obtenerRutaFoto($foto) {
                     </button>
 
                     <form action="../../controllers/AdminBarberoController.php"
-                          method="POST">
+                          method="POST"><?= csrf_field() ?>
 
                       <input type="hidden"
                              name="accion"
@@ -646,7 +646,7 @@ function obtenerRutaFoto($foto) {
 
                     <tr>
                       <td><?php echo htmlspecialchars($barbero["nombre"]); ?></td>
-                      <td><?php echo htmlspecialchars($barbero["especialidad"]); ?></td>
+                      <td><?php echo htmlspecialchars($barbero["especialidad"] ?? ""); ?></td>
                       <td><?php echo htmlspecialchars($barbero["sede_nombre"]); ?></td>
                       <td>
                         <span class="admin-badge-inactive">
@@ -657,7 +657,7 @@ function obtenerRutaFoto($foto) {
                         <div class="admin-actions">
 
                           <form action="../../controllers/AdminBarberoController.php"
-                                method="POST">
+                                method="POST"><?= csrf_field() ?>
 
                             <input type="hidden"
                                    name="accion"
@@ -709,7 +709,7 @@ function obtenerRutaFoto($foto) {
 
       <form action="../../controllers/AdminBarberoController.php"
             method="POST"
-            enctype="multipart/form-data">
+            enctype="multipart/form-data"><?= csrf_field() ?>
 
         <input type="hidden"
                name="accion"
@@ -771,6 +771,12 @@ function obtenerRutaFoto($foto) {
               <?php endforeach; ?>
 
             </select>
+
+            <?php if (empty($sedes)): ?>
+              <small style="color:var(--muted);font-size:12px">
+                Primero tenés que crear una sede en la sección Sedes.
+              </small>
+            <?php endif; ?>
           </div>
 
           <div class="mb-3">
@@ -810,6 +816,7 @@ function obtenerRutaFoto($foto) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/panel.js"></script>
 
 </body>
 </html>

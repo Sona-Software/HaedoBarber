@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config/security.php';
 
 date_default_timezone_set('America/Argentina/Buenos_Aires');
 
@@ -159,7 +159,8 @@ try {
 
   <title>Usuarios | Panel Admin</title>
 
-  <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
 
@@ -181,8 +182,7 @@ try {
     <div>
 
       <div class="admin-brand">
-        <span class="brand-el">HAEDO</span>
-        <span class="brand-filo"> BARBER</span>
+        <img src="../assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-admin" width="800" height="298">
       </div>
 
       <nav class="admin-menu">
@@ -232,7 +232,7 @@ try {
     </div>
 
     <form action="../../controllers/AuthController.php"
-          method="POST">
+          method="POST"><?= csrf_field() ?>
 
       <input type="hidden"
              name="action"
@@ -532,6 +532,7 @@ try {
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/panel.js"></script>
 
 </body>
 </html>

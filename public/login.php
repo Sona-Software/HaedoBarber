@@ -1,10 +1,12 @@
+<?php require_once __DIR__ . '/../config/security.php'; ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ingresar | Haedo Barber</title>
-  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
@@ -16,7 +18,7 @@
   <nav class="navbar navbar-dark fixed-top py-3" style="background:rgba(10,10,10,0.95);border-bottom:1px solid var(--border)">
     <div class="container">
       <a class="navbar-brand" href="index.php">
-        <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
+        <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo" width="800" height="298">
       </a>
       <a href="index.php" class="btn btn-outline-gold btn-sm">← Volver al inicio</a>
     </div>
@@ -26,37 +28,41 @@
     <div class="auth-card">
 
       <!-- Encabezado -->
-      <!-- Encabezado -->
-      <!-- Encabezado -->
-      <!-- Encabezado -->
-      <!-- Encabezado -->
-      <!-- Encabezado -->
-      <!-- Encabezado -->
       <div class="mb-4">
         <p class="section-eyebrow mb-1">Bienvenido de vuelta</p>
         <h1 class="auth-title">INGRESAR</h1>
       </div>
 
-      <!-- Mensaje de error PHP (placeholder) -->
-      <!-- Mensaje de error PHP (placeholder) -->
-      <!-- Mensaje de error PHP (placeholder) -->
-      <!-- Mensaje de error PHP (placeholder) -->
+      <!-- Mensajes -->
       <?php
           $error = $_GET['error'] ?? '';
+          $mensajesError = [
+            'credenciales_invalidas' => 'Email o contraseña incorrectos',
+            'campos_vacios' => 'Completá tu email y contraseña.',
+            'accion_invalida' => 'Ocurrió un error. Intentá nuevamente.',
+            'bloqueado' => 'Demasiados intentos fallidos. Esperá unos minutos y volvé a probar.',
+          ];
         ?>
-        <?php if ($error === 'credenciales_invalidas'): ?>
+        <?php if (isset($mensajesError[$error])): ?>
           <div class="alert alert-danger alert-dismissible fade show"
               role="alert"
               style="background:#2a1111;border:1px solid #8b1a1a;color:#f0ede8;border-radius:2px">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            Email o contraseña incorrectos
+            <?php echo htmlspecialchars($mensajesError[$error]); ?>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
           </div>
-        <?php endif; 
-      ?>
+        <?php elseif (($_GET['logout'] ?? '') === 'exitoso'): ?>
+          <div class="alert alert-dismissible fade show"
+              role="alert"
+              style="background:#0d2418;border:1px solid #2a6644;color:#7ecba1;border-radius:2px">
+            <i class="bi bi-check2-circle me-2"></i>
+            Cerraste sesión correctamente.
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+          </div>
+        <?php endif; ?>
 
       <!-- Formulario -->
-        <form action="../controllers/AuthController.php" method="POST" id="loginForm" novalidate>
+        <form action="../controllers/AuthController.php" method="POST" id="loginForm" novalidate><?= csrf_field() ?>
           <input type="hidden" name="action" value="login">
 
           <div class="mb-4">
@@ -72,6 +78,7 @@
                 name="email"
                 placeholder="tu@email.com"
                 required
+                maxlength="120"
                 autocomplete="email"
                 style="border-left:none!important"
               >
@@ -108,7 +115,7 @@
                 style="background-color:var(--bg4);border-color:var(--border)">
               <label class="form-check-label" for="recordar" style="font-size:12px;color:var(--muted)">Recordarme</label>
             </div>
-            <a href="recuperar.html" class="text-gold text-decoration-none" style="font-size:12px">¿Olvidaste tu contraseña?</a>
+            <a href="contacto.php" class="text-gold text-decoration-none" style="font-size:12px">¿Olvidaste tu contraseña?</a>
           </div>
 
           <button type="submit" class="btn btn-gold w-100 py-3">

@@ -4,10 +4,6 @@ require_once '../config/session_check.php';
 $success = $_GET['success'] ?? '';
 $error = $_GET['error'] ?? '';
 $sedes = [];
-// Hola 
-// completo
-// Comentario
-// Como estas
 try {
     $sqlSedes = "SELECT *
                  FROM sedes
@@ -29,7 +25,8 @@ try {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Contacto | Haedo Barber</title>
-  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -41,7 +38,7 @@ try {
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top scrolled" id="mainNav">
   <div class="container">
     <a class="navbar-brand" href="index.php">
-      <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
+      <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo" width="800" height="298">
     </a>
 
     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu">
@@ -131,7 +128,7 @@ try {
               <li><hr class="dropdown-divider"></li>
 
               <li>
-                <form action="../controllers/AuthController.php" method="POST">
+                <form action="../controllers/AuthController.php" method="POST"><?= csrf_field() ?>
                   <input type="hidden" name="action" value="logout">
                   <button type="submit" class="dropdown-item">
                     <i class="bi bi-box-arrow-left"></i>
@@ -159,11 +156,11 @@ try {
   </div>
 </nav>
 
-<div style="background:var(--bg2);padding:130px 0 60px;border-bottom:1px solid var(--border)">
+<div class="page-hero">
   <div class="container">
     <p class="section-eyebrow">Hablemos</p>
     <h1 class="section-title">Contacto</h1>
-    <p style="color:var(--muted);font-size:14px">¿Tenés una pregunta? Mandanos un mensaje y te respondemos pronto.</p>
+    <p>¿Tenés una pregunta? Mandanos un mensaje y te respondemos pronto.</p>
   </div>
 </div>
 
@@ -193,6 +190,8 @@ try {
                 echo 'Completá todos los campos obligatorios.';
               } elseif ($error === 'email_invalido') {
                 echo 'Ingresá un email válido.';
+              } elseif ($error === 'demasiados_intentos') {
+                echo 'Enviaste muchos mensajes seguidos. Probá de nuevo más tarde.';
               } elseif ($error === 'db_error') {
                 echo 'Hubo un error al guardar el mensaje.';
               } else {
@@ -207,34 +206,35 @@ try {
           </div>
         <?php endif; ?>
 
-        <form action="../controllers/ContactController.php" method="POST" id="contactForm" novalidate>
+        <form action="../controllers/ContactController.php" method="POST" id="contactForm" novalidate><?= csrf_field() ?>
           <div class="row g-3">
 
             <div class="col-sm-6">
               <label for="nombre" class="form-label">Nombre completo</label>
-              <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Juan Pérez" required>
+              <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Juan Pérez" required maxlength="120">
               <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá tu nombre.</div>
             </div>
 
             <div class="col-sm-6">
               <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" name="email" placeholder="juan@ejemplo.com" required>
+              <input type="email" class="form-control" id="email" name="email" placeholder="juan@ejemplo.com" required maxlength="120">
               <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá un email válido.</div>
             </div>
 
             <div class="col-12">
               <label for="asunto" class="form-label">Asunto</label>
-              <input type="text" class="form-control" id="asunto" name="asunto" placeholder="¿Sobre qué nos escribís?">
+              <input type="text" class="form-control" id="asunto" name="asunto" placeholder="¿Sobre qué nos escribís?" maxlength="150">
+              <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label>No completar este campo <input type="text" name="sitio_web" tabindex="-1" autocomplete="off"></label></div>
             </div>
 
             <div class="col-12">
               <label for="mensaje" class="form-label">Mensaje</label>
-              <textarea class="form-control" id="mensaje" name="mensaje" rows="6"
+              <textarea class="form-control" id="mensaje" name="mensaje" rows="6" maxlength="500"
                 placeholder="Escribí tu consulta acá..." required></textarea>
 
               <div class="d-flex justify-content-between mt-1">
-                <div class="invalid-feedback" style="font-size:11px;color:#e05555;display:block">Ingresá tu mensaje.</div>
-                <span id="char-count" style="font-size:11px;color:var(--muted);text-align:right">0 / 500</span>
+                <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá tu mensaje.</div>
+                <span id="char-count" style="font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;flex-shrink:0;margin-left:12px">0 / 500</span>
               </div>
             </div>
 
@@ -249,7 +249,7 @@ try {
       </div>
 
       <div class="col-lg-5">
-        <div style="background:var(--bg3);border:1px solid var(--border);padding:32px;margin-bottom:24px">
+        <div class="contact-card">
           <h3 style="font-family:var(--font-display);font-size:24px;color:var(--cream);letter-spacing:1px;margin-bottom:24px">ENCONTRANOS</h3>
 
           <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:18px">
@@ -319,7 +319,7 @@ try {
 
       <div class="col-lg-4">
         <div class="footer-brand">
-          <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
+          <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-footer" width="800" height="298">
         </div>
 
         <p class="footer-tagline">El arte del filo, la precisión del corte.</p>
@@ -366,7 +366,7 @@ try {
             </li>
             <li><a href="user/reservar_turno.php">Reservar turno</a></li>
             <li>
-              <form action="../controllers/AuthController.php" method="POST" style="margin:0">
+              <form action="../controllers/AuthController.php" method="POST" style="margin:0"><?= csrf_field() ?>
                 <input type="hidden" name="action" value="logout">
                 <button type="submit" style="background:none;border:0;padding:0;color:inherit;font:inherit">
                   Cerrar sesión

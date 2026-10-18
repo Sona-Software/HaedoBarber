@@ -1,6 +1,5 @@
 <?php
 require_once '../config/session_check.php';
-// Hola fisjfosij
 try {
     $sqlServicios = "SELECT *
                      FROM servicios
@@ -34,7 +33,8 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Haedo Barber</title>
 
-  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
@@ -46,7 +46,7 @@ try {
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
     <div class="container">
       <a class="navbar-brand" href="index.php">
-        <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
+        <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo" width="800" height="298">
       </a>
 
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu">
@@ -124,7 +124,7 @@ try {
             <li><hr class="dropdown-divider"></li>
 
             <li>
-              <form action="../controllers/AuthController.php" method="POST">
+              <form action="../controllers/AuthController.php" method="POST"><?= csrf_field() ?>
                 <input type="hidden" name="action" value="logout">
                 <button type="submit" class="dropdown-item">
                   <i class="bi bi-box-arrow-left"></i>
@@ -141,11 +141,6 @@ try {
     <a class="btn btn-outline-gold btn-sm" href="login.php">Ingresar</a>
   </li>
 
-  <a href="<?php echo isset($_SESSION["usuario_id"]) ? 'user/reservar_turno.php' : 'login.php'; ?>"
-   class="btn btn-gold btn-lg">
-  Reservar turno
-</a>
-
 <?php endif; ?>
         </ul>
       </div>
@@ -160,7 +155,7 @@ try {
       <div class="row h-100 align-items-center">
 
         <div class="col-lg-7">
-          <p class="hero-eyebrow">Buenos Aires · Desde 2020</p>
+          <p class="hero-eyebrow">Buenos Aires</p>
 
           <h1 class="hero-title">
             EL ARTE<br>
@@ -183,8 +178,8 @@ try {
         <div class="col-lg-5 d-none d-lg-flex justify-content-end">
           <div class="hero-img-frame">
             <div class="hero-img-inner">
-              <img src="assets/img/sucursalia.webp"
-                   alt="Barbero trabajando"
+              <img src="assets/img/logo-haedobarber.png"
+                   alt="Haedo Barber"
                    class="hero-photo">
             </div>
 
@@ -318,7 +313,7 @@ try {
                 </h3>
 
                 <p class="service-desc">
-                  <?php echo htmlspecialchars($servicio["descripcion"]); ?>
+                  <?php echo htmlspecialchars($servicio["descripcion"] ?? ""); ?>
                 </p>
 
                 <div class="service-footer">
@@ -401,7 +396,7 @@ try {
 
       <div class="col-lg-4">
         <div class="footer-brand">
-          <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
+          <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-footer" width="800" height="298">
         </div>
 
         <p class="footer-tagline">El arte del filo, la precisión del corte.</p>

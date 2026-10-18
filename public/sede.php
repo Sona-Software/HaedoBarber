@@ -3,7 +3,7 @@ require_once '../config/session_check.php';
 
 $sedeId = $_GET["id"] ?? "";
 
-if ($sedeId === "" || !is_numeric($sedeId)) {
+if (!is_string($sedeId) || !ctype_digit($sedeId) || strlen($sedeId) > 10) {
     header("Location: index.php");
     exit;
 }
@@ -113,7 +113,8 @@ try {
 
   <title><?php echo htmlspecialchars($sede["nombre"]); ?> | Haedo Barber</title>
 
-  <link rel="icon" type="image/svg+xml" href="assets/img/haedobarber-mark.svg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap"
@@ -129,7 +130,7 @@ try {
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top scrolled" id="mainNav">
   <div class="container">
     <a class="navbar-brand" href="index.php">
-      <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
+      <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo" width="800" height="298">
     </a>
 
     <button class="navbar-toggler border-0"
@@ -221,7 +222,7 @@ try {
               <li><hr class="dropdown-divider"></li>
 
               <li>
-                <form action="../controllers/AuthController.php" method="POST">
+                <form action="../controllers/AuthController.php" method="POST"><?= csrf_field() ?>
                   <input type="hidden" name="action" value="logout">
                   <button type="submit" class="dropdown-item">
                     <i class="bi bi-box-arrow-left"></i>
@@ -275,10 +276,12 @@ try {
         Mar–Sáb 10:30–13:00 / 14:30–20:00
       </span>
 
+      <?php if (!empty($_ENV['CONTACT_PHONE'])): ?>
       <span class="sede-info-item">
         <i class="bi bi-telephone-fill"></i>
-        +54 9 11 5126-7271
+        <?php echo htmlspecialchars($_ENV['CONTACT_PHONE'], ENT_QUOTES, 'UTF-8'); ?>
       </span>
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -329,9 +332,9 @@ try {
                   <div class="barber-img-wrap" style="height:100%">
                     <?php
                     $fotoBarbero = $barbero["foto"] ?? '';
-                    $rutaFoto = str_starts_with($fotoBarbero, 'img/') ? 'assets/' . substr($fotoBarbero, 4) : (str_starts_with($fotoBarbero, 'assets/') ? $fotoBarbero : (!empty($fotoBarbero) ? '../' . $fotoBarbero : 'assets/img/haedobarber-mark.svg'));
+                    $rutaFoto = $fotoBarbero !== '' ? rutaPublicaFoto($fotoBarbero) : 'assets/img/apple-touch-icon.png';
                     ?>
-                    <img src="../<?php echo $rutaFoto; ?>"
+                    <img src="<?php echo htmlspecialchars($rutaFoto, ENT_QUOTES, 'UTF-8'); ?>"
                         alt="<?php echo htmlspecialchars($barbero["nombre"]); ?>"
                         class="barber-img"
                         style="height:100%;min-height:260px">
@@ -349,7 +352,7 @@ try {
                     </h4>
 
                     <span class="barber-spec">
-                      <?php echo htmlspecialchars($barbero["especialidad"]); ?>
+                      <?php echo htmlspecialchars($barbero["especialidad"] ?? ""); ?>
                     </span>
                   </div>
 
@@ -498,10 +501,12 @@ try {
             Mar–Sáb 10:30–13:00 / 14:30–20:00
           </li>
 
+          <?php if (!empty($_ENV['CONTACT_PHONE'])): ?>
           <li>
             <i class="bi bi-telephone-fill"></i>
-            +54 9 11 5126-7271
+            <?php echo htmlspecialchars($_ENV['CONTACT_PHONE'], ENT_QUOTES, 'UTF-8'); ?>
           </li>
+          <?php endif; ?>
         </ul>
 
         <a href="<?php echo $linkReserva; ?>" class="btn btn-gold mt-4">
@@ -513,9 +518,10 @@ try {
 
         <div class="sede-map-wrap">
 
-          <?php if (!empty($sede["mapa_embed"])): ?>
+          <?php if (mapa_embed_url($sede["mapa_embed"] ?? "") !== null): ?>
 
-            <?php echo $sede["mapa_embed"]; ?>
+            <?php /* Sólo se imprime un iframe propio con URL https de Google Maps validada; nunca HTML crudo de la base. */ ?>
+            <?php echo mapa_embed_html($sede["mapa_embed"]); ?>
 
           <?php else: ?>
 
@@ -544,7 +550,7 @@ try {
 
       <div class="col-lg-4">
         <div class="footer-brand">
-          <span class="brand-el">HAEDO</span><span class="brand-filo"> BARBER</span>
+          <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-footer" width="800" height="298">
         </div>
 
         <p class="footer-tagline">El arte del filo, la precisión del corte.</p>
@@ -631,10 +637,12 @@ try {
             Mar–Sáb 10:30–13:00 / 14:30–20:00
           </li>
 
+          <?php if (!empty($_ENV['WHATSAPP_URL'])): ?>
           <li>
-            <i class="bi bi-telephone-fill"></i>
-            <?php if (!empty($_ENV['WHATSAPP_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>">Contactanos por WhatsApp</a><?php endif; ?>
+            <i class="bi bi-whatsapp"></i>
+            <a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>">Contactanos por WhatsApp</a>
           </li>
+          <?php endif; ?>
 
           <li>
             <i class="bi bi-envelope-fill"></i>
@@ -691,7 +699,7 @@ try {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-const galleries = <?php echo json_encode($galeriasJS); ?>;
+const galleries = <?php echo json_encode($galeriasJS, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES); ?>;
 
 const modalElement = document.getElementById("imageGalleryModal");
 const carouselElement = document.getElementById("imageGalleryCarousel");
@@ -718,11 +726,11 @@ function openGallery(galleryName, startIndex) {
       item.classList.add("active");
     }
 
-    item.innerHTML = `
-      <img src="${imageSrc}"
-           class="d-block w-100 gallery-modal-img"
-           alt="Foto ${index + 1}">
-    `;
+    const img = document.createElement("img");
+    img.src = imageSrc;
+    img.className = "d-block w-100 gallery-modal-img";
+    img.alt = "Foto " + (index + 1);
+    item.appendChild(img);
 
     carouselInner.appendChild(item);
   });

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config/security.php';
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: ../login.php");
@@ -59,7 +59,7 @@ try {
 
 function obtenerRutaFotoSede($foto) {
     if (empty($foto)) {
-        return "../assets/img/haedobarber-mark.svg";
+        return "../assets/img/apple-touch-icon.png";
     }
 
     if (str_starts_with($foto, "img/")) return "../assets/" . substr($foto, 4);
@@ -77,7 +77,8 @@ function obtenerRutaFotoSede($foto) {
 
   <title>Sedes | Panel Admin</title>
 
-  <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
 
@@ -99,8 +100,7 @@ function obtenerRutaFotoSede($foto) {
     <div>
 
       <div class="admin-brand">
-        <span class="brand-el">HAEDO</span>
-        <span class="brand-filo"> BARBER</span>
+        <img src="../assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-admin" width="800" height="298">
       </div>
 
       <nav class="admin-menu">
@@ -144,7 +144,7 @@ function obtenerRutaFotoSede($foto) {
     </div>
 
     <form action="../../controllers/AuthController.php"
-          method="POST">
+          method="POST"><?= csrf_field() ?>
 
       <input type="hidden"
              name="action"
@@ -283,7 +283,7 @@ function obtenerRutaFotoSede($foto) {
                                alt="Foto sede">
 
                           <form action="../../controllers/AdminSedeController.php"
-                                method="POST">
+                                method="POST"><?= csrf_field() ?>
 
                             <input type="hidden"
                                    name="accion"
@@ -321,7 +321,7 @@ function obtenerRutaFotoSede($foto) {
                   <form action="../../controllers/AdminSedeController.php"
                         method="POST"
                         enctype="multipart/form-data"
-                        class="admin-upload-mini-form">
+                        class="admin-upload-mini-form"><?= csrf_field() ?>
 
                     <input type="hidden"
                            name="accion"
@@ -378,7 +378,7 @@ function obtenerRutaFotoSede($foto) {
 
                   <form action="../../controllers/AdminSedeController.php"
                         method="POST"
-                        enctype="multipart/form-data">
+                        enctype="multipart/form-data"><?= csrf_field() ?>
 
                     <input type="hidden"
                            name="accion"
@@ -390,7 +390,7 @@ function obtenerRutaFotoSede($foto) {
 
                     <input type="hidden"
                            name="foto_actual"
-                           value="<?php echo htmlspecialchars($sede["foto"]); ?>">
+                           value="<?php echo htmlspecialchars($sede["foto"] ?? ""); ?>">
 
                     <div class="modal-header">
                       <h5 class="modal-title">
@@ -502,7 +502,7 @@ function obtenerRutaFotoSede($foto) {
                     </button>
 
                     <form action="../../controllers/AdminSedeController.php"
-                          method="POST">
+                          method="POST"><?= csrf_field() ?>
 
                       <input type="hidden"
                              name="accion"
@@ -576,7 +576,7 @@ function obtenerRutaFotoSede($foto) {
                         <div class="admin-actions">
 
                           <form action="../../controllers/AdminSedeController.php"
-                                method="POST">
+                                method="POST"><?= csrf_field() ?>
 
                             <input type="hidden"
                                    name="accion"
@@ -627,7 +627,7 @@ function obtenerRutaFotoSede($foto) {
 
       <form action="../../controllers/AdminSedeController.php"
             method="POST"
-            enctype="multipart/form-data">
+            enctype="multipart/form-data"><?= csrf_field() ?>
 
         <input type="hidden"
                name="accion"
@@ -694,6 +694,7 @@ function obtenerRutaFotoSede($foto) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/panel.js"></script>
 
 </body>
 </html>

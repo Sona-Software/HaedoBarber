@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config/security.php';
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: ../login.php");
@@ -53,7 +53,8 @@ try {
 
   <title>Servicios | Panel Admin</title>
 
-  <link rel="icon" type="image/svg+xml" href="../assets/img/haedobarber-mark.svg?v=1.0">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png?v=2">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png?v=2">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
 
@@ -75,8 +76,7 @@ try {
     <div>
 
       <div class="admin-brand">
-        <span class="brand-el">HAEDO</span>
-        <span class="brand-filo"> BARBER</span>
+        <img src="../assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-admin" width="800" height="298">
       </div>
 
       <nav class="admin-menu">
@@ -263,7 +263,7 @@ try {
                 </td>
 
                 <td>
-                  <?php echo htmlspecialchars($servicio["descripcion"]); ?>
+                  <?php echo htmlspecialchars($servicio["descripcion"] ?? ""); ?>
                 </td>
 
                 <td>
@@ -318,7 +318,7 @@ try {
                 <div class="modal-content admin-message-modal">
 
                 <form action="../../controllers/AdminServicioController.php"
-                        method="POST">
+                        method="POST"><?= csrf_field() ?>
 
                     <input type="hidden"
                         name="accion"
@@ -360,7 +360,7 @@ try {
 
                         <textarea name="descripcion"
                                 class="form-control"
-                                rows="4"><?php echo htmlspecialchars($servicio["descripcion"]); ?></textarea>
+                                rows="4"><?php echo htmlspecialchars($servicio["descripcion"] ?? ""); ?></textarea>
                     </div>
 
                     <div class="mb-3">
@@ -462,7 +462,7 @@ try {
         </button>
 
         <form action="../../controllers/AdminServicioController.php"
-              method="POST">
+              method="POST"><?= csrf_field() ?>
 
           <input type="hidden"
                  name="accion"
@@ -527,7 +527,7 @@ try {
             <?php foreach ($serviciosInactivos as $servicio): ?>
               <tr>
                 <td><?php echo htmlspecialchars($servicio["nombre"]); ?></td>
-                <td><?php echo htmlspecialchars($servicio["descripcion"]); ?></td>
+                <td><?php echo htmlspecialchars($servicio["descripcion"] ?? ""); ?></td>
                 <td>$<?php echo number_format($servicio["precio"], 0, ",", "."); ?></td>
                 <td><?php echo htmlspecialchars($servicio["duracion_min"]); ?> min</td>
                 <td>
@@ -536,7 +536,7 @@ try {
                 <td>
                   <div class="admin-actions">
                     <form action="../../controllers/AdminServicioController.php"
-                          method="POST">
+                          method="POST"><?= csrf_field() ?>
 
                       <input type="hidden"
                              name="accion"
@@ -582,7 +582,7 @@ try {
     <div class="modal-content admin-message-modal">
 
       <form action="../../controllers/AdminServicioController.php"
-            method="POST">
+            method="POST"><?= csrf_field() ?>
 
         <input type="hidden"
                name="accion"
@@ -684,6 +684,7 @@ try {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/panel.js"></script>
 
 </body>
 </html>
