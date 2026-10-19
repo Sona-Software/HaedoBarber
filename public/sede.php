@@ -1,6 +1,7 @@
 <?php
 require_once '../config/session_check.php';
 require_once '../config/site.php';
+require_once '../config/turnos_helper.php';
 
 $sedeId = $_GET["id"] ?? "";
 
@@ -274,7 +275,7 @@ try {
 
       <span class="sede-info-item">
         <i class="bi bi-clock-fill"></i>
-        Mar–Sáb 10:30–13:00 / 14:30–20:00
+        <?php echo htmlspecialchars(turnos_horario_texto()); ?>
       </span>
 
       <?php if (sitio_telefono() !== ''): ?>
@@ -491,7 +492,7 @@ try {
           <?php echo htmlspecialchars($sede["nombre"]); ?>
         </h2>
 
-        <ul class="footer-contact-list mt-3">
+        <ul class="sede-contact-list mt-3">
           <li>
             <i class="bi bi-geo-alt-fill"></i>
             <?php echo htmlspecialchars($sede["direccion"]); ?>
@@ -499,7 +500,7 @@ try {
 
           <li>
             <i class="bi bi-clock-fill"></i>
-            Mar–Sáb 10:30–13:00 / 14:30–20:00
+            <?php echo htmlspecialchars(turnos_horario_texto()); ?>
           </li>
 
           <?php if (sitio_telefono() !== ''): ?>
@@ -545,87 +546,7 @@ try {
   </div>
 </section>
 
-<footer class="site-footer">
-  <div class="container">
-    <div class="row g-4">
-
-      <div class="col-lg-4">
-        <div class="footer-brand">
-          <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo brand-logo-footer" width="800" height="298">
-        </div>
-
-        <p class="footer-tagline">El arte del filo, la precisión del corte.</p>
-
-        <div class="footer-social">
-          <?php foreach (['instagram' => sitio_instagram_url(), 'tiktok' => sitio_tiktok_url(), 'whatsapp' => sitio_whatsapp_url()] as $icon => $href): if ($href !== ''): ?><a href="<?php echo sitio_h($href); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo ucfirst($icon); ?>"><i class="bi bi-<?php echo $icon; ?>" aria-hidden="true"></i></a><?php endif; endforeach; ?>
-        </div>
-      </div>
-
-      <div class="col-sm-6 col-lg-2 offset-lg-1">
-        <h5 class="footer-heading">Sitio</h5>
-
-        <ul class="footer-links">
-          <li><a href="index.php">Inicio</a></li>
-          <li><a href="index.php#servicios">Servicios</a></li>
-
-          <?php foreach ($sedes as $itemSede): ?>
-            <li>
-              <a href="sede.php?id=<?php echo $itemSede["id"]; ?>">
-                <?php echo htmlspecialchars($itemSede["nombre"]); ?>
-              </a>
-            </li>
-          <?php endforeach; ?>
-
-          <li><a href="contacto.php">Contacto</a></li>
-        </ul>
-      </div>
-
-      <div class="col-sm-6 col-lg-2">
-        <h5 class="footer-heading">Mi cuenta</h5>
-
-        <ul class="footer-links">
-          <?php if (isset($_SESSION["usuario_id"])): ?>
-            <li>
-              <a href="<?php echo $_SESSION["usuario_rol"] === "admin"
-                  ? 'admin/panel_admin.php'
-                  : 'user/panel_usuario.php'; ?>">
-
-                <?php echo $_SESSION["usuario_rol"] === "admin"
-                  ? 'Panel admin'
-                  : 'Mi cuenta'; ?>
-
-              </a>
-            </li>
-            <li><a href="user/reservar_turno.php">Reservar turno</a></li>
-            <li><a href="terminos.html">Términos y condiciones</a></li>
-          <?php else: ?>
-            <li><a href="registro.php">Registrarse</a></li>
-            <li><a href="login.php">Ingresar</a></li>
-            <li><a href="terminos.html">Términos y condiciones</a></li>
-          <?php endif; ?>
-        </ul>
-      </div>
-
-      <div class="col-lg-3">
-        <h5 class="footer-heading">Contacto</h5>
-
-        <ul class="footer-contact-list">
-          <?php echo sitio_footer_contacto_html(); ?>
-
-          <li>
-            <i class="bi bi-clock-fill"></i>
-            Mar–Sáb 10:30–13:00 / 14:30–20:00
-          </li>
-        </ul>
-      </div>
-
-    </div>
-
-    <div class="footer-bottom">
-      <p>© 2026 Haedo Barber · Todos los derechos reservados</p>
-    </div>
-  </div>
-</footer>
+<?php require __DIR__ . '/partials/footer.php'; ?>
 
 <div class="modal fade" id="imageGalleryModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl">

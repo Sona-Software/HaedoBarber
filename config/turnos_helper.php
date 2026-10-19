@@ -6,7 +6,7 @@
  * sobrescribir desde .env con la misma clave (ej: TURNOS_MAX_ACTIVOS=3).
  *
  * Para cambiar los horarios de trabajo editá TURNOS_BLOQUES, TURNOS_DIAS_CERRADOS
- * y TURNOS_SLOT_MIN más abajo.
+ * y TURNOS_SLOT_MIN más abajo. Los textos visibles salen de turnos_horario_texto().
  */
 
 require_once __DIR__ . '/env.php';
@@ -30,9 +30,10 @@ function turnos_def(string $nombre, $valor): void
 /* ----------------------------- Horarios de trabajo ----------------------------- */
 turnos_def('TURNOS_TZ', 'America/Argentina/Buenos_Aires');
 // Bloques de atención [inicio, fin] en formato HH:MM (el turno debe terminar antes o justo al fin).
-turnos_def('TURNOS_BLOQUES', [['10:30', '13:00'], ['14:30', '20:00']]);
-// Días cerrados (ISO: 1 = lunes ... 7 = domingo).
-turnos_def('TURNOS_DIAS_CERRADOS', [1, 7]);
+// Atención de corrido: lunes a sábado de 10:30 a 20:30.
+turnos_def('TURNOS_BLOQUES', [['10:30', '20:30']]);
+// Días cerrados (ISO: 1 = lunes ... 7 = domingo). Solo domingo.
+turnos_def('TURNOS_DIAS_CERRADOS', [7]);
 // Grilla de horarios: los turnos solo pueden empezar cada N minutos desde el inicio de cada bloque.
 turnos_def('TURNOS_SLOT_MIN', turnos_cfg_int('TURNOS_SLOT_MIN', 30));
 
@@ -64,6 +65,67 @@ turnos_def('TURNOS_CANCEL_MAX', turnos_cfg_int('TURNOS_CANCEL_MAX', 3));        
 turnos_def('TURNOS_CANCEL_VENTANA_DIAS', turnos_cfg_int('TURNOS_CANCEL_VENTANA_DIAS', 7)); // ...en esta ventana de días
 
 date_default_timezone_set(TURNOS_TZ);
+
+/* ----------------------- Textos del horario (derivados) ----------------------- */
+
+/** Rangos de días abiertos, p. ej. "Lun a Sáb". Se deriva de TURNOS_DIAS_CERRADOS. */
+function turnos_dias_texto(bool $largo = false): string
+{
+    $nombres = $largo
+        ? [1 => 'lunes', 2 => 'martes', 3 => 'miércoles', 4 => 'jueves', 5 => 'viernes', 6 => 'sábado', 7 => 'domingo']
+        : [1 => 'Lun', 2 => 'Mar', 3 => 'Mié', 4 => 'Jue', 5 => 'Vie', 6 => 'Sáb', 7 => 'Dom'];
+    $abiertos = array_values(array_diff(range(1, 7), TURNOS_DIAS_CERRADOS));
+    if (!$abiertos) {
+        return '';
+    }
+    $rangos = [];
+    $ini = $prev = $abiertos[0];
+    foreach (array_slice($abiertos, 1) as $d) {
+        if ($d === $prev + 1) {
+            $prev = $d;
+            continue;
+        }
+        $rangos[] = [$ini, $prev];
+        $ini = $prev = $d;
+    }
+    $rangos[] = [$ini, $prev];
+    $partes = [];
+    foreach ($rangos as [$a, $b]) {
+        $partes[] = $a === $b ? $nombres[$a] : $nombres[$a] . ($b === $a + 1 ? ' y ' : ' a ') . $nombres[$b];
+    }
+    return implode(', ', $partes);
+}
+
+/** Días cerrados en plural, p. ej. "domingos". */
+function turnos_cerrado_texto(): string
+{
+    $nombres = [1 => 'lunes', 2 => 'martes', 3 => 'miércoles', 4 => 'jueves', 5 => 'viernes', 6 => 'sábados', 7 => 'domingos'];
+    $l = [];
+    foreach (TURNOS_DIAS_CERRADOS as $d) {
+        $l[] = $nombres[$d];
+    }
+    if (count($l) > 1) {
+        $ult = array_pop($l);
+        return implode(', ', $l) . ' y ' . $ult;
+    }
+    return $l[0] ?? '';
+}
+
+/** Franjas de horario, p. ej. "10:30 a 20:30" (varias: "10:30 a 13:00 y 14:30 a 20:00"). */
+function turnos_horas_texto(): string
+{
+    $p = [];
+    foreach (TURNOS_BLOQUES as $b) {
+        $p[] = $b[0] . ' a ' . $b[1];
+    }
+    return implode(' y ', $p);
+}
+
+/** Horario completo para mostrar, p. ej. "Lun a Sáb · 10:30 a 20:30". */
+function turnos_horario_texto(): string
+{
+    return turnos_dias_texto() . ' · ' . turnos_horas_texto();
+}
 
 /* =============================== Lógica pura =============================== */
 
@@ -206,8 +268,8 @@ function turnos_mensajes_error(): array
         'campos_vacios' => 'Completá todos los datos para reservar tu turno.',
         'datos_invalidos' => 'Los datos del turno no son válidos. Probá elegir de nuevo sede, barbero, servicio y horario.',
         'fecha_pasada' => 'No podés reservar un horario que ya pasó.',
-        'dia_cerrado' => 'La barbería permanece cerrada domingos y lunes.',
-        'horario_invalido' => 'Ese horario está fuera del horario de atención. Elegí uno de la lista.',
+        'dia_cerrado' => 'La barbería permanece cerrada los ' . turnos_cerrado_texto() . '. Atendemos ' . turnos_horario_texto() . '.',
+        'horario_invalido' => 'Ese horario está fuera del horario de atención (' . turnos_horario_texto() . '). Elegí uno de la lista.',
         'horario_ocupado' => 'Ese horario ya fue reservado. Elegí otro disponible.',
         'anticipacion_minima' => 'Los turnos se reservan con al menos ' . TURNOS_ANTICIPACION_MIN_MIN . ' minutos de anticipación.',
         'anticipacion_maxima' => 'Solo podés reservar con hasta ' . TURNOS_ANTICIPACION_MAX_DIAS . ' días de anticipación.',

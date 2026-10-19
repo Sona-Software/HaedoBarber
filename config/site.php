@@ -14,6 +14,7 @@ function sitio_defaults(): array
         'CONTACT_EMAIL' => '',
         'CONTACT_PHONE' => '+54 9 11 2544-4383',
         'CONTACT_ADDRESS' => 'Las Bases 199, B1706 Haedo, Provincia de Buenos Aires',
+        'HORARIO_TEXTO' => 'Lun a Sáb · 10:30 a 20:30',
         'INSTAGRAM_HANDLE' => '@haedobarber',
         'INSTAGRAM_URL' => 'https://www.instagram.com/haedobarber/',
         'TIKTOK_URL' => 'https://www.tiktok.com/@haedobarber',
@@ -61,6 +62,12 @@ function sitio_direccion(): string
     return sitio_config('CONTACT_ADDRESS');
 }
 
+/** Horario de atención (texto público, sin días de cierre). */
+function sitio_horario(): string
+{
+    return sitio_config('HORARIO_TEXTO');
+}
+
 function sitio_direccion_url(): string
 {
     $d = sitio_direccion();
@@ -82,38 +89,4 @@ function sitio_mapa_url(): string
 function sitio_h(string $s): string
 {
     return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
-}
-
-/**
- * Lista <ul class="footer-list"> items de contacto del footer; devuelve HTML (vacío si no hay datos).
- * Cada ítem se omite si su dato está vacío.
- */
-function sitio_footer_contacto_html(): string
-{
-    $out = '';
-    $dir = sitio_direccion();
-    if ($dir !== '') {
-        $out .= '<li><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> <a href="' . sitio_h(sitio_direccion_url())
-            . '" target="_blank" rel="noopener noreferrer">' . sitio_h($dir) . '</a></li>';
-    }
-    if (sitio_whatsapp_url() !== '') {
-        $out .= '<li><i class="bi bi-whatsapp" aria-hidden="true"></i> <a href="' . sitio_h(sitio_whatsapp_url())
-            . '" target="_blank" rel="noopener noreferrer">' . sitio_h(sitio_telefono() ?: 'WhatsApp') . '</a></li>';
-    } elseif (sitio_telefono() !== '') {
-        $out .= '<li><i class="bi bi-telephone-fill" aria-hidden="true"></i> <a href="tel:' . sitio_h(sitio_telefono_tel())
-            . '">' . sitio_h(sitio_telefono()) . '</a></li>';
-    }
-    if (sitio_instagram_url() !== '') {
-        $out .= '<li><i class="bi bi-instagram" aria-hidden="true"></i> <a href="' . sitio_h(sitio_instagram_url())
-            . '" target="_blank" rel="noopener noreferrer">' . sitio_h(sitio_instagram_handle() ?: 'Instagram') . '</a></li>';
-    }
-    if (sitio_tiktok_url() !== '') {
-        $out .= '<li><i class="bi bi-tiktok" aria-hidden="true"></i> <a href="' . sitio_h(sitio_tiktok_url())
-            . '" target="_blank" rel="noopener noreferrer">TikTok</a></li>';
-    }
-    if (sitio_email() !== '') {
-        $out .= '<li><i class="bi bi-envelope-fill" aria-hidden="true"></i> <a href="mailto:' . sitio_h(sitio_email())
-            . '">' . sitio_h(sitio_email()) . '</a></li>';
-    }
-    return $out;
 }
