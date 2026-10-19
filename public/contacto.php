@@ -1,5 +1,6 @@
 <?php
 require_once '../config/session_check.php';
+require_once '../config/site.php';
 
 $success = $_GET['success'] ?? '';
 $error = $_GET['error'] ?? '';
@@ -253,24 +254,32 @@ try {
           <h3 style="font-family:var(--font-display);font-size:24px;color:var(--cream);letter-spacing:1px;margin-bottom:24px">ENCONTRANOS</h3>
 
           <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:18px">
+            <?php if (sitio_direccion() !== ''): ?>
             <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-geo-alt-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0"></i>
+              <i class="bi bi-geo-alt-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
+              <div>
+                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Dirección</p>
+                <a class="hb-contact-link" href="<?php echo sitio_h(sitio_direccion_url()); ?>" target="_blank" rel="noopener noreferrer"><?php echo sitio_h(sitio_direccion()); ?></a>
+              </div>
+            </li>
+            <?php endif; ?>
+
+            <?php if (!empty($sedes)): ?>
+            <li style="display:flex;gap:14px;align-items:flex-start">
+              <i class="bi bi-shop" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
               <div>
                 <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Sedes</p>
                 <p style="color:var(--muted);font-size:13px;margin:0">
-                  <?php if (empty($sedes)): ?>
-                    Próximamente nuevas ubicaciones.
-                  <?php else: ?>
-                    <?php foreach ($sedes as $sede): ?>
-                      <a href="sede.php?id=<?php echo $sede["id"]; ?>" style="color:var(--gold);text-decoration:none">
-                        <?php echo htmlspecialchars($sede["nombre"]); ?>
-                      </a>
-                      — <?php echo htmlspecialchars($sede["direccion"]); ?><br>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
+                  <?php foreach ($sedes as $sede): ?>
+                    <a href="sede.php?id=<?php echo $sede["id"]; ?>" style="color:var(--gold);text-decoration:none">
+                      <?php echo htmlspecialchars($sede["nombre"]); ?>
+                    </a>
+                    — <?php echo htmlspecialchars($sede["direccion"]); ?><br>
+                  <?php endforeach; ?>
                 </p>
               </div>
             </li>
+            <?php endif; ?>
 
             <li style="display:flex;gap:14px;align-items:flex-start">
               <i class="bi bi-clock-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0"></i>
@@ -280,31 +289,69 @@ try {
               </div>
             </li>
 
+            <?php if (sitio_whatsapp_url() !== ''): ?>
             <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-telephone-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0"></i>
+              <i class="bi bi-whatsapp" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
               <div>
                 <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">WhatsApp</p>
-                <?php if (!empty($_ENV['WHATSAPP_URL'])): ?><p style="color:var(--muted);font-size:13px;margin:0"><a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>">Escribinos por WhatsApp</a></p><?php else: ?><p style="color:var(--muted);font-size:13px;margin:0">Próximamente</p><?php endif; ?>
+                <a class="hb-contact-link" href="<?php echo sitio_h(sitio_whatsapp_url()); ?>" target="_blank" rel="noopener noreferrer"><?php echo sitio_h(sitio_telefono() ?: 'WhatsApp'); ?></a>
               </div>
             </li>
-
+            <?php elseif (sitio_telefono() !== ''): ?>
             <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-envelope-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0"></i>
+              <i class="bi bi-telephone-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
+              <div>
+                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Teléfono</p>
+                <a class="hb-contact-link" href="tel:<?php echo sitio_h(sitio_telefono_tel()); ?>"><?php echo sitio_h(sitio_telefono()); ?></a>
+              </div>
+            </li>
+            <?php endif; ?>
+
+            <?php if (sitio_instagram_url() !== ''): ?>
+            <li style="display:flex;gap:14px;align-items:flex-start">
+              <i class="bi bi-instagram" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
+              <div>
+                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Instagram</p>
+                <a class="hb-contact-link" href="<?php echo sitio_h(sitio_instagram_url()); ?>" target="_blank" rel="noopener noreferrer"><?php echo sitio_h(sitio_instagram_handle() ?: 'Instagram'); ?></a>
+              </div>
+            </li>
+            <?php endif; ?>
+
+            <?php if (sitio_tiktok_url() !== ''): ?>
+            <li style="display:flex;gap:14px;align-items:flex-start">
+              <i class="bi bi-tiktok" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
+              <div>
+                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">TikTok</p>
+                <a class="hb-contact-link" href="<?php echo sitio_h(sitio_tiktok_url()); ?>" target="_blank" rel="noopener noreferrer">@haedobarber</a>
+              </div>
+            </li>
+            <?php endif; ?>
+
+            <?php if (sitio_email() !== ''): ?>
+            <li style="display:flex;gap:14px;align-items:flex-start">
+              <i class="bi bi-envelope-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
               <div>
                 <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Email</p>
-                <p style="color:var(--muted);font-size:13px;margin:0"><?php echo !empty($_ENV['CONTACT_EMAIL']) ? htmlspecialchars($_ENV['CONTACT_EMAIL']) : 'Contacto mediante formulario'; ?></p>
+                <a class="hb-contact-link" href="mailto:<?php echo sitio_h(sitio_email()); ?>"><?php echo sitio_h(sitio_email()); ?></a>
               </div>
             </li>
+            <?php endif; ?>
           </ul>
+
+          <?php if (sitio_whatsapp_url() !== ''): ?>
+          <a class="hb-whatsapp-btn" href="<?php echo sitio_h(sitio_whatsapp_url()); ?>" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i> Escribinos por WhatsApp
+          </a>
+          <?php endif; ?>
         </div>
 
-        <?php if (!empty($_ENV['GOOGLE_MAPS_EMBED_URL'])): ?><div style="border:1px solid var(--border);overflow:hidden">
+        <?php if (sitio_mapa_url() !== ''): ?><div class="hb-map">
           <iframe
-            src="<?php echo htmlspecialchars($_ENV['GOOGLE_MAPS_EMBED_URL'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
-            width="100%" height="280"
-            style="border:0;display:block;filter:grayscale(80%) contrast(1.1) brightness(0.6)"
-            allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-            title="Ubicación Haedo Barber">
+            src="<?php echo sitio_h(sitio_mapa_url()); ?>"
+            width="600" height="320"
+            style="border:0"
+            allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            title="Mapa con la ubicación de Haedo Barber en Las Bases 199, Haedo">
           </iframe>
         </div><?php endif; ?>
       </div>
@@ -325,7 +372,7 @@ try {
         <p class="footer-tagline">El arte del filo, la precisión del corte.</p>
 
         <div class="footer-social">
-          <?php foreach (['INSTAGRAM_URL' => 'instagram', 'TIKTOK_URL' => 'tiktok', 'WHATSAPP_URL' => 'whatsapp'] as $key => $icon): if (!empty($_ENV[$key])): ?><a href="<?php echo htmlspecialchars($_ENV[$key], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo ucfirst($icon); ?>"><i class="bi bi-<?php echo $icon; ?>"></i></a><?php endif; endforeach; ?>
+          <?php foreach (['instagram' => sitio_instagram_url(), 'tiktok' => sitio_tiktok_url(), 'whatsapp' => sitio_whatsapp_url()] as $icon => $href): if ($href !== ''): ?><a href="<?php echo sitio_h($href); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo ucfirst($icon); ?>"><i class="bi bi-<?php echo $icon; ?>" aria-hidden="true"></i></a><?php endif; endforeach; ?>
         </div>
       </div>
 
@@ -384,16 +431,7 @@ try {
         <h5 class="footer-heading">Horarios</h5>
 
         <ul class="footer-contact-list">
-          <?php if (empty($sedes)): ?>
-            <li><i class="bi bi-geo-alt-fill"></i> Próximamente nuevas sedes</li>
-          <?php else: ?>
-            <?php foreach ($sedes as $sede): ?>
-              <li>
-                <i class="bi bi-geo-alt-fill"></i>
-                <?php echo htmlspecialchars($sede["direccion"]); ?>
-              </li>
-            <?php endforeach; ?>
-          <?php endif; ?>
+          <?php echo sitio_footer_contacto_html(); ?>
 
           <li><i class="bi bi-clock-fill"></i> Mar–Sab 10:30–13 / 14:30–20 hs</li>
           <li><i class="bi bi-x-circle-fill" style="color:#8b1a1a"></i> Dom-Lun cerrado</li>

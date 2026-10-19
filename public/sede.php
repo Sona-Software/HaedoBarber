@@ -1,5 +1,6 @@
 <?php
 require_once '../config/session_check.php';
+require_once '../config/site.php';
 
 $sedeId = $_GET["id"] ?? "";
 
@@ -276,10 +277,10 @@ try {
         Mar–Sáb 10:30–13:00 / 14:30–20:00
       </span>
 
-      <?php if (!empty($_ENV['CONTACT_PHONE'])): ?>
+      <?php if (sitio_telefono() !== ''): ?>
       <span class="sede-info-item">
         <i class="bi bi-telephone-fill"></i>
-        <?php echo htmlspecialchars($_ENV['CONTACT_PHONE'], ENT_QUOTES, 'UTF-8'); ?>
+        <a href="tel:<?php echo sitio_h(sitio_telefono_tel()); ?>" style="color:inherit"><?php echo sitio_h(sitio_telefono()); ?></a>
       </span>
       <?php endif; ?>
     </div>
@@ -501,10 +502,10 @@ try {
             Mar–Sáb 10:30–13:00 / 14:30–20:00
           </li>
 
-          <?php if (!empty($_ENV['CONTACT_PHONE'])): ?>
+          <?php if (sitio_telefono() !== ''): ?>
           <li>
             <i class="bi bi-telephone-fill"></i>
-            <?php echo htmlspecialchars($_ENV['CONTACT_PHONE'], ENT_QUOTES, 'UTF-8'); ?>
+            <a href="tel:<?php echo sitio_h(sitio_telefono_tel()); ?>"><?php echo sitio_h(sitio_telefono()); ?></a>
           </li>
           <?php endif; ?>
         </ul>
@@ -556,23 +557,7 @@ try {
         <p class="footer-tagline">El arte del filo, la precisión del corte.</p>
 
         <div class="footer-social">
-          <?php if (!empty($_ENV['INSTAGRAM_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['INSTAGRAM_URL'], ENT_QUOTES, 'UTF-8'); ?>"
-             target="_blank"
-             aria-label="Instagram">
-            <i class="bi bi-instagram"></i>
-          </a><?php endif; ?>
-
-          <?php if (!empty($_ENV['TIKTOK_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['TIKTOK_URL'], ENT_QUOTES, 'UTF-8'); ?>"
-             target="_blank"
-             aria-label="TikTok">
-            <i class="bi bi-tiktok"></i>
-          </a><?php endif; ?>
-
-          <?php if (!empty($_ENV['WHATSAPP_URL'])): ?><a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>"
-             target="_blank"
-             aria-label="WhatsApp">
-            <i class="bi bi-whatsapp"></i>
-          </a><?php endif; ?>
+          <?php foreach (['instagram' => sitio_instagram_url(), 'tiktok' => sitio_tiktok_url(), 'whatsapp' => sitio_whatsapp_url()] as $icon => $href): if ($href !== ''): ?><a href="<?php echo sitio_h($href); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo ucfirst($icon); ?>"><i class="bi bi-<?php echo $icon; ?>" aria-hidden="true"></i></a><?php endif; endforeach; ?>
         </div>
       </div>
 
@@ -625,28 +610,11 @@ try {
         <h5 class="footer-heading">Contacto</h5>
 
         <ul class="footer-contact-list">
-          <?php foreach ($sedes as $itemSede): ?>
-            <li>
-              <i class="bi bi-geo-alt-fill"></i>
-              <?php echo htmlspecialchars($itemSede["direccion"]); ?>
-            </li>
-          <?php endforeach; ?>
+          <?php echo sitio_footer_contacto_html(); ?>
 
           <li>
             <i class="bi bi-clock-fill"></i>
             Mar–Sáb 10:30–13:00 / 14:30–20:00
-          </li>
-
-          <?php if (!empty($_ENV['WHATSAPP_URL'])): ?>
-          <li>
-            <i class="bi bi-whatsapp"></i>
-            <a href="<?php echo htmlspecialchars($_ENV['WHATSAPP_URL'], ENT_QUOTES, 'UTF-8'); ?>">Contactanos por WhatsApp</a>
-          </li>
-          <?php endif; ?>
-
-          <li>
-            <i class="bi bi-envelope-fill"></i>
-            <?php echo !empty($_ENV['CONTACT_EMAIL']) ? htmlspecialchars($_ENV['CONTACT_EMAIL']) : 'Contacto mediante formulario'; ?>
           </li>
         </ul>
       </div>
