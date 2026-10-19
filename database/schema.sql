@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS servicios;
 DROP TABLE IF EXISTS sedes;
 DROP TABLE IF EXISTS contactos;
 DROP TABLE IF EXISTS intentos_acceso;
+DROP TABLE IF EXISTS remember_tokens;
 DROP TABLE IF EXISTS usuarios;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -28,11 +29,21 @@ CREATE TABLE usuarios (
     password VARCHAR(255) NOT NULL,
     rol ENUM('admin','general') NOT NULL DEFAULT 'general',
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ultimo_acceso DATETIME NULL,
-    remember_selector CHAR(18) NULL,
-    remember_token_hash VARCHAR(255) NULL,
-    remember_token_expira DATETIME NULL,
-    UNIQUE KEY uq_usuarios_remember_selector (remember_selector)
+    ultimo_acceso DATETIME NULL
+);
+
+-- "Recordar inicio de sesion": un token (selector + hash SHA-256 del validator) por dispositivo.
+CREATE TABLE remember_tokens (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    selector CHAR(18) NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expira DATETIME NOT NULL,
+    creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ultimo_uso DATETIME NULL,
+    UNIQUE KEY uq_remember_selector (selector),
+    INDEX idx_remember_usuario (usuario_id, expira),
+    CONSTRAINT fk_remember_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
 -- Intentos de login/registro/contacto para bloqueo temporal (fuerza bruta / spam).

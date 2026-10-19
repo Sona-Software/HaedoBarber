@@ -175,7 +175,7 @@ function completar_login($conn, $usuario, $recordar) {
         if ($recordar) {
             recordar_emitir($conn, (int) $usuario["id"]);
         } else {
-            recordar_revocar($conn, (int) $usuario["id"]);
+            recordar_revocar_actual($conn); // sólo este navegador; otros dispositivos siguen recordados
             recordar_borrar_cookies();
         }
     } catch (PDOException $e) {
@@ -192,14 +192,11 @@ function completar_login($conn, $usuario, $recordar) {
 }
 
 function logout($conn) {
-    $usuarioId = $_SESSION["usuario_id"] ?? null;
-
-    if ($usuarioId) {
-        try {
-            recordar_revocar($conn, (int) $usuarioId);
-        } catch (PDOException $e) {
-            error_log("Haedo Barber: no se pudo revocar recordarme: " . $e->getMessage());
-        }
+    // Revoca el token de ESTE dispositivo (aunque la sesión ya haya expirado); los demás siguen válidos.
+    try {
+        recordar_revocar_actual($conn);
+    } catch (PDOException $e) {
+        error_log("Haedo Barber: no se pudo revocar recordarme: " . $e->getMessage());
     }
 
     recordar_borrar_cookies();

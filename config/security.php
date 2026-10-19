@@ -403,6 +403,7 @@ function recordar_cookie_opciones(int $expira): array
 
 function recordar_borrar_cookies(): void
 {
+    unset($_COOKIE['remember'], $_COOKIE['remember_user'], $_COOKIE['remember_token']);
     if (headers_sent()) {
         return;
     }
@@ -412,40 +413,117 @@ function recordar_borrar_cookies(): void
     setcookie('remember_token', '', recordar_cookie_opciones(time() - 3600));
 }
 
-/** Genera un token nuevo para el usuario y lo guarda hasheado. Reemplaza al anterior. */
+/**
+ * Crea la tabla de tokens si todavía no existe (migración 004 sin correr).
+ * Un usuario puede tener varios tokens a la vez: uno por navegador/dispositivo.
+ */
+function recordar_asegurar_tabla(PDO $conn): void
+{
+    $conn->exec(
+        'CREATE TABLE IF NOT EXISTS remember_tokens (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            usuario_id INT NOT NULL,
+            selector CHAR(18) NOT NULL,
+            token_hash CHAR(64) NOT NULL,
+            expira DATETIME NOT NULL,
+            creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            ultimo_uso DATETIME NULL,
+            UNIQUE KEY uq_remember_selector (selector),
+            INDEX idx_remember_usuario (usuario_id, expira),
+            CONSTRAINT fk_remember_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+}
+
+/** Selector de la cookie "remember" de este navegador (o null si no hay una cookie válida). */
+function recordar_selector_actual(): ?string
+{
+    $cookie = $_COOKIE['remember'] ?? '';
+    if (is_string($cookie) && preg_match('/^([a-f0-9]{18}):[a-f0-9]{64}$/', $cookie, $m)) {
+        return $m[1];
+    }
+    return null;
+}
+
+/** Ejecuta $fn; si falta la tabla remember_tokens la crea y reintenta una vez. */
+function recordar_con_tabla(PDO $conn, callable $fn)
+{
+    try {
+        return $fn();
+    } catch (PDOException $ex) {
+        if ($ex->getCode() !== '42S02') {
+            throw $ex;
+        }
+        recordar_asegurar_tabla($conn);
+        return $fn();
+    }
+}
+
+/**
+ * Emite un token nuevo para ESTE navegador y lo guarda hasheado. Los tokens de otros
+ * dispositivos del mismo usuario siguen válidos (máximo 10 por usuario; se descartan los más viejos).
+ */
 function recordar_emitir(PDO $conn, int $usuarioId): void
 {
     $selector = bin2hex(random_bytes(9));
     $validator = bin2hex(random_bytes(32));
     $expira = time() + HB_REMEMBER_DAYS * 86400;
+    $selectorViejo = recordar_selector_actual();
 
-    $stmt = $conn->prepare(
-        'UPDATE usuarios
-         SET remember_selector = :selector,
-             remember_token_hash = :hash,
-             remember_token_expira = FROM_UNIXTIME(:expira)
-         WHERE id = :id'
-    );
-    $stmt->bindValue(':selector', $selector);
-    $stmt->bindValue(':hash', hash('sha256', $validator));
-    $stmt->bindValue(':expira', $expira, PDO::PARAM_INT);
-    $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
-    $stmt->execute();
+    recordar_con_tabla($conn, static function () use ($conn, $usuarioId, $selector, $validator, $expira, $selectorViejo) {
+        if ($selectorViejo !== null) { // este navegador reemplaza su propio token anterior
+            $del = $conn->prepare('DELETE FROM remember_tokens WHERE selector = :s');
+            $del->bindValue(':s', $selectorViejo);
+            $del->execute();
+        }
+        $conn->exec('DELETE FROM remember_tokens WHERE usuario_id = ' . (int) $usuarioId . ' AND expira <= NOW()');
+
+        $stmt = $conn->prepare(
+            'INSERT INTO remember_tokens (usuario_id, selector, token_hash, expira)
+             VALUES (:id, :selector, :hash, FROM_UNIXTIME(:expira))'
+        );
+        $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
+        $stmt->bindValue(':selector', $selector);
+        $stmt->bindValue(':hash', hash('sha256', $validator));
+        $stmt->bindValue(':expira', $expira, PDO::PARAM_INT);
+        $stmt->execute();
+
+        // Tope de dispositivos: conserva los 10 más recientes.
+        $viejos = $conn->prepare('SELECT id FROM remember_tokens WHERE usuario_id = :id ORDER BY creado_en DESC, id DESC LIMIT 18446744073709551615 OFFSET 10');
+        $viejos->bindValue(':id', $usuarioId, PDO::PARAM_INT);
+        $viejos->execute();
+        foreach ($viejos->fetchAll(PDO::FETCH_COLUMN) as $idViejo) {
+            $conn->exec('DELETE FROM remember_tokens WHERE id = ' . (int) $idViejo);
+        }
+    });
 
     if (!headers_sent()) {
         setcookie('remember', $selector . ':' . $validator, recordar_cookie_opciones($expira));
     }
 }
 
+/** Revoca sólo el token de este navegador (logout / login sin "recordar"). */
+function recordar_revocar_actual(PDO $conn): void
+{
+    $selector = recordar_selector_actual();
+    if ($selector === null) {
+        return;
+    }
+    recordar_con_tabla($conn, static function () use ($conn, $selector) {
+        $stmt = $conn->prepare('DELETE FROM remember_tokens WHERE selector = :s');
+        $stmt->bindValue(':s', $selector);
+        $stmt->execute();
+    });
+}
+
+/** Revoca los tokens de TODOS los dispositivos de un usuario (p. ej. al cambiar su contraseña). */
 function recordar_revocar(PDO $conn, int $usuarioId): void
 {
-    $stmt = $conn->prepare(
-        'UPDATE usuarios
-         SET remember_selector = NULL, remember_token_hash = NULL, remember_token_expira = NULL
-         WHERE id = :id'
-    );
-    $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
-    $stmt->execute();
+    recordar_con_tabla($conn, static function () use ($conn, $usuarioId) {
+        $stmt = $conn->prepare('DELETE FROM remember_tokens WHERE usuario_id = :id');
+        $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
+        $stmt->execute();
+    });
 }
 
 /** Intenta iniciar sesión desde la cookie "remember" (selector + validator hasheado). */
@@ -467,30 +545,39 @@ function recordar_login(PDO $conn): void
     [, $selector, $validator] = $m;
 
     try {
-        $stmt = $conn->prepare(
-            'SELECT id, nombre, email, rol, remember_token_hash
-             FROM usuarios
-             WHERE remember_selector = :selector
-               AND remember_token_expira > NOW()
-             LIMIT 1'
-        );
-        $stmt->bindValue(':selector', $selector);
-        $stmt->execute();
-        $u = $stmt->fetch(PDO::FETCH_ASSOC);
+        $u = recordar_con_tabla($conn, static function () use ($conn, $selector) {
+            $stmt = $conn->prepare(
+                'SELECT u.id, u.nombre, u.email, u.rol, t.token_hash, (t.expira > NOW()) AS vigente
+                 FROM remember_tokens t
+                 INNER JOIN usuarios u ON u.id = t.usuario_id
+                 WHERE t.selector = :selector
+                 LIMIT 1'
+            );
+            $stmt->bindValue(':selector', $selector);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        });
 
         if (!$u) {
             recordar_borrar_cookies();
             return;
         }
-        if (!hash_equals((string) $u['remember_token_hash'], hash('sha256', $validator))) {
-            // Selector válido con validator incorrecto: posible robo. Se invalida el token.
-            recordar_revocar($conn, (int) $u['id']);
+        if (!(int) $u['vigente'] || !hash_equals((string) $u['token_hash'], hash('sha256', $validator))) {
+            // Vencido, o selector válido con validator incorrecto (posible robo): se descarta este token.
+            $del = $conn->prepare('DELETE FROM remember_tokens WHERE selector = :s');
+            $del->bindValue(':s', $selector);
+            $del->execute();
             recordar_borrar_cookies();
             return;
         }
 
+        $upd = $conn->prepare('UPDATE remember_tokens SET ultimo_uso = NOW() WHERE selector = :s');
+        $upd->bindValue(':s', $selector);
+        $upd->execute();
+
         // No se rota el token en cada uso para no invalidar pedidos paralelos del navegador;
-        // el token vive 30 días, se revoca al cerrar sesión y ante un validator incorrecto.
+        // el token vive 30 días fijos, se revoca al cerrar sesión y ante un validator incorrecto.
+        // Rol y datos se toman de la base en este momento (no de la cookie).
         iniciar_sesion_usuario($u);
     } catch (PDOException $ex) {
         error_log('Haedo Barber: error en recordarme: ' . $ex->getMessage());
