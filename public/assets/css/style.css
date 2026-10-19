@@ -3213,3 +3213,261 @@ input[type="time"].form-control {
   .sede-header { padding-top: 84px; padding-bottom: 36px; }
 }
 /* [HB-RESP-END] */
+
+/* [HB-IMG-LOGO-START] Fotos de portada/quiénes somos y logo del navbar más grande */
+:root { --nav-h: 98px; }
+html { scroll-padding-top: 84px; }
+
+#mainNav { padding: 16px 0; }
+#mainNav.scrolled { padding: 10px 0; }
+.navbar .navbar-brand .brand-logo:not(.brand-logo-admin):not(.brand-logo-footer) { height: 64px; }
+#mainNav.scrolled .navbar-brand .brand-logo:not(.brand-logo-admin):not(.brand-logo-footer) { height: 52px; }
+.auth-page { padding: 120px 0 60px; }
+
+.hero-photo {
+  height: clamp(440px, 64vh, 580px);
+  object-fit: cover;
+  object-position: 50% 62%; /* sillón y espejos */
+}
+.about-img-main {
+  height: auto;
+  aspect-ratio: 4 / 4.2;
+  max-height: 520px;
+  object-fit: cover;
+  object-position: 62% 50%; /* barberos y clientes */
+}
+.about-img-side {
+  object-position: 50% 45%; /* máquinas y tijeras */
+}
+
+@media (max-width: 991.98px) {
+  .about-img-main { aspect-ratio: 4 / 3.4; max-height: 400px; }
+}
+@media (max-width: 575.98px) {
+  :root { --nav-h: 72px; }
+  #mainNav { padding: 10px 0; }
+  #mainNav.scrolled { padding: 8px 0; }
+  .navbar .navbar-brand .brand-logo:not(.brand-logo-admin):not(.brand-logo-footer),
+  #mainNav.scrolled .navbar-brand .brand-logo:not(.brand-logo-admin):not(.brand-logo-footer) { height: 50px; }
+  .auth-page { padding: 108px 0 40px; }
+  .navbar.fixed-top:not(#mainNav) > .container { flex-wrap: nowrap; }
+  .navbar.fixed-top:not(#mainNav) .btn-sm { padding-left: 12px; padding-right: 12px; letter-spacing: 1px; font-size: 11px; white-space: nowrap; }
+  .about-img-main { aspect-ratio: 4 / 3.6; max-height: 320px; }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  :root { --nav-h: 62px; }
+  #mainNav, #mainNav.scrolled { padding-top: 6px; padding-bottom: 6px; }
+  .navbar .navbar-brand .brand-logo:not(.brand-logo-admin):not(.brand-logo-footer),
+  #mainNav.scrolled .navbar-brand .brand-logo:not(.brand-logo-admin):not(.brand-logo-footer) { height: 42px; }
+  .navbar-collapse { max-height: calc(100vh - 62px); max-height: calc(100dvh - 62px); }
+  .auth-page { padding-top: 84px; }
+  .page-hero, .sede-header { padding-top: 90px; }
+}
+/* [HB-IMG-LOGO-END] */
+
+/* ==========================================================
+   [HB-PUBLIC2-START] Segunda pasada pública (mobile-first)
+   Coherencia con la comunicación de marca: títulos condensados,
+   filete dorado fino, rótulos espaciados, bloques sobrios.
+========================================================== */
+
+/* Texto secundario más legible sobre negro (solo público) */
+.hero-subtitle,
+.section-body,
+.service-desc,
+.cta-body,
+.page-hero p:not(.section-eyebrow),
+.footer-tagline,
+.footer-links a,
+.footer-contact-list li,
+.legal-card p,
+.legal-card li,
+.contact-card li > div,
+.auth-subtitle { color: #b4b1ab; }
+.section-body strong { color: var(--cream); }
+
+/* Ritmo vertical coherente (móvil primero) */
+.py-section { padding: 64px 0; }
+.cta-section { padding: 64px 0; }
+@media (min-width: 768px) { .py-section { padding: 92px 0; } .cta-section { padding: 88px 0; } }
+@media (min-width: 992px) { .py-section { padding: 112px 0; } .cta-section { padding: 104px 0; } }
+
+/* Títulos y rótulos: escala única */
+.section-eyebrow { font-size: 11px; letter-spacing: 4px; margin-bottom: 12px; }
+.section-title { font-size: clamp(36px, 9vw, 56px); line-height: 1.02; margin-bottom: 20px; }
+.cta-title { font-size: clamp(38px, 10vw, 64px); line-height: 1.02; }
+.services-section .text-center.mb-5 { margin-bottom: 36px !important; }
+@media (min-width: 768px) { .services-section .text-center.mb-5 { margin-bottom: 52px !important; } }
+
+/* Hero: bloque compacto, sin vacíos enormes arriba y abajo */
+.hero-section { min-height: 100vh; min-height: 100svh; }
+@media (max-width: 991.98px) {
+  .hero-section { min-height: 0; padding: calc(var(--nav-h) + 72px) 0 72px; }
+  .hero-title { font-size: clamp(60px, 17vw, 84px); line-height: .94; margin-bottom: 22px; }
+  .hero-subtitle { font-size: 15px; line-height: 1.75; max-width: 34ch; }
+  .hero-section .d-flex.gap-3 { gap: 12px !important; margin-top: 28px !important; }
+  .hero-section .btn-lg { flex: 1 1 100%; }
+}
+@media (min-width: 576px) and (max-width: 991.98px) {
+  .hero-section .btn-lg { flex: 0 0 auto; }
+}
+.hero-title .title-gold { display: inline-block; }
+
+/* Franja: más fina */
+.announcement-bar { padding: 11px 0; }
+.announcement-content span { font-size: 10px; letter-spacing: 3.5px; }
+
+/* Nosotros */
+@media (max-width: 991.98px) {
+  .about-section .row { --bs-gutter-y: 2.25rem; }
+  .about-img-tag { font-size: 10px; letter-spacing: 1.5px; padding: 8px 12px; }
+}
+.about-features { display: grid; gap: 12px; }
+.about-feature-item { font-size: 14px; }
+
+/* Servicios: tarjetas sobrias, sin icono repetido */
+.service-icon { display: none; }
+.service-card {
+  background-color: var(--bg);
+  padding: 28px 24px;
+  border-top: 1px solid rgba(201,168,76,0.5);
+}
+.service-title { font-size: 28px; margin-bottom: 10px; }
+.service-desc { font-size: 14px; line-height: 1.7; }
+.service-footer { margin-top: 22px; padding-top: 16px; }
+.service-price { font-size: 28px; }
+.btn-service-link { color: var(--gold); letter-spacing: 2px; }
+.services-section .row { --bs-gutter-y: 14px; --bs-gutter-x: 20px; }
+@media (min-width: 992px) {
+  .services-section .row { --bs-gutter-y: 24px; --bs-gutter-x: 24px; }
+  .service-card { padding: 34px 30px; }
+}
+
+/* Estados vacíos: más livianos */
+.empty-state { padding: 44px 22px; }
+
+/* CTA */
+.cta-section .d-flex { gap: 12px !important; }
+@media (max-width: 575.98px) { .cta-section .btn { width: 100%; } }
+
+/* Footer: compacto y ordenado */
+.site-footer { padding-top: 56px; }
+.footer-heading { margin-bottom: 14px; }
+.footer-links li { margin-bottom: 0; }
+.footer-links a { min-height: 36px; font-size: 14px; }
+.footer-contact-list li { font-size: 14px; margin-bottom: 10px; }
+.footer-bottom { margin-top: 36px; }
+.footer-tagline { margin-bottom: 18px; }
+@media (max-width: 575.98px) {
+  .site-footer .row { --bs-gutter-y: 28px; }
+  .site-footer .row > .col-sm-6 { flex: 0 0 auto; width: 50%; }
+  .footer-links a { min-height: 40px; }
+}
+@media (min-width: 992px) {
+  .site-footer { padding-top: 80px; }
+  .footer-bottom { margin-top: 56px; }
+}
+
+/* Páginas internas: cabecera consistente (izquierda en móvil) */
+.page-hero { padding-bottom: 36px; }
+.page-hero .container.text-center { text-align: left !important; }
+@media (min-width: 768px) { .page-hero .container.text-center { text-align: center !important; } }
+.page-hero .section-title { margin-bottom: 14px; }
+
+/* Términos: títulos en la tipografía de marca */
+.legal-card h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 1.5px;
+  font-size: clamp(26px, 6vw, 32px);
+  color: var(--gold);
+}
+.legal-card { padding: 28px 22px; }
+@media (min-width: 768px) { .legal-card { padding: 48px; } }
+
+/* Contacto: botón a ancho completo en móvil */
+@media (max-width: 575.98px) {
+  .contact-form .btn-gold,
+  .contact-form button[type="submit"] { width: 100%; }
+}
+
+/* Auth: formularios limpios */
+.auth-card .input-group-text { padding: 0 6px 0 14px; }
+.auth-card .input-group > .form-control { padding-left: 10px; }
+.auth-card .form-label { font-size: 11px; }
+.auth-card .form-check-label { font-size: 13px; color: #b4b1ab; }
+@media (max-width: 575.98px) {
+  .auth-page { align-items: center; padding-bottom: 32px; }
+  .auth-card { max-width: none; }
+  .auth-title { font-size: 38px; }
+}
+
+/* Sede: sin etiqueta numérica suelta, mapa y botones coherentes */
+.sede-tag { display: none; }
+.sede-map-wrap { background: var(--bg2); }
+@media (max-width: 575.98px) {
+  .sede-info-strip { gap: 10px; }
+  .section-plain .btn { width: 100%; }
+}
+/* [HB-PUBLIC2-END] */
+
+/* ==========================================================
+   [HB-IMG-RESP-START] Fotos del hero y "Quiénes somos" en móvil/tablet
+   Causa: la columna del hero tenía d-none d-lg-flex y .about-img-side
+   tenía display:none (<992px). Ahora se muestran, con proporción vertical.
+========================================================== */
+.hero-media-col { min-width: 0; }
+.hero-img-frame { max-width: 100%; }
+
+@media (max-width: 991.98px) {
+  .hero-media-col { margin-top: 56px; padding-bottom: 20px; }
+  .hero-img-frame { width: min(340px, calc(100% - 20px)); margin-inline: auto; }
+  .hero-photo {
+    height: auto;
+    aspect-ratio: 4 / 5;
+    max-height: none;
+    object-position: 50% 55%;
+  }
+  .hero-img-badge { left: 14px; bottom: -18px; padding: 11px 14px; font-size: 10px; }
+  .hero-img-badge i { font-size: 18px; }
+
+  .about-img-grid {
+    max-width: 560px;
+    margin-inline: auto;
+    padding-right: 0;
+    padding-bottom: 44px;
+  }
+  .about-img-main { aspect-ratio: 4 / 3.4; max-height: none; height: auto; width: 88%; }
+  .about-img-side {
+    display: block;
+    width: 38%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    right: 0;
+    bottom: 0;
+  }
+  .about-img-tag { left: 12px; top: 16px; }
+}
+@media (max-width: 575.98px) {
+  .hero-media-col { margin-top: 44px; }
+  .hero-img-frame { width: min(300px, calc(100% - 24px)); }
+  .about-img-main { aspect-ratio: 1 / 1; width: 86%; }
+  .about-img-side { width: 40%; }
+}
+@media (min-width: 992px) {
+  .about-img-side { display: block; }
+}
+/* [HB-IMG-RESP-END] */
+
+/* [HB-CONTACT-START] Datos de contacto reales: links táctiles, botón WhatsApp, mapa */
+.hb-contact-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--gold); font-size: 14px; text-decoration: none; overflow-wrap: anywhere; }
+.hb-contact-link:hover, .hb-contact-link:focus-visible { color: var(--cream); text-decoration: underline; }
+.hb-whatsapp-btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; margin-top: 24px; padding: 12px 20px; background: #25d366; color: #0b1f12; font-weight: 700; font-size: 15px; text-decoration: none; border-radius: 4px; }
+.hb-whatsapp-btn i { font-size: 20px; }
+.hb-whatsapp-btn:hover, .hb-whatsapp-btn:focus-visible { background: #1ebe5a; color: #0b1f12; }
+.hb-map { margin-top: 20px; border: 1px solid var(--border); overflow: hidden; aspect-ratio: 4 / 3; max-height: 360px; }
+.hb-map iframe { display: block; width: 100%; height: 100%; border: 0; }
+.footer-contact-list a { display: inline-block; min-height: 24px; color: var(--muted); }
+.footer-contact-list a:hover, .footer-contact-list a:focus-visible { color: var(--gold); }
+.footer-social a { min-width: 44px; min-height: 44px; }
+/* [HB-CONTACT-END] */
