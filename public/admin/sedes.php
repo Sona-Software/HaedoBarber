@@ -233,6 +233,7 @@ function obtenerRutaFotoSede($foto) {
         <div class="admin-empty-state">
           <i class="bi bi-geo-alt"></i>
           <p>No hay sedes activas cargadas.</p>
+          <small>Usá el botón «Nueva sede» para agregar la primera.</small>
         </div>
 
       <?php else: ?>

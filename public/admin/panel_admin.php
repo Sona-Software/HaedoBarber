@@ -167,8 +167,8 @@ try {
           </a>
         </div>
 
-        <div class="admin-welcome-image">
-          <img src="../assets/img/adminpanel_img.webp" alt="Imagen decorativa del panel administrativo">
+        <div class="admin-welcome-image admin-welcome-logo" aria-hidden="true">
+          <img src="../assets/img/logo-haedobarber.png?v=2" alt="" class="brand-logo" width="800" height="298">
         </div>
       </section>
 

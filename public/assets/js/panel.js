@@ -2,6 +2,7 @@
    HAEDO BARBER | JS de paneles (admin / cliente)
    - Etiquetas data-label en tablas para verlas como tarjetas en móvil.
    - Centra el enlace activo del menú horizontal en móvil.
+   - Mueve los modales a <body> para que queden sobre el backdrop.
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -16,6 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
+  });
+
+  // Los modales viven dentro de .admin-layout (isolation: isolate) y quedaban
+  // debajo del backdrop de Bootstrap (no se podían tocar). Se mueven a <body>.
+  document.querySelectorAll('.admin-layout .modal').forEach(modal => {
+    document.body.appendChild(modal);
   });
 
   const menu = document.querySelector('.admin-menu');

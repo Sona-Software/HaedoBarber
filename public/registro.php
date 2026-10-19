@@ -18,7 +18,7 @@ $error = $_GET['error'] ?? '';
 </head>
 <body class="auth-page">
 
-  <nav class="navbar navbar-dark fixed-top py-3" style="background:rgba(10,10,10,0.95);border-bottom:1px solid var(--border)">
+  <nav class="navbar navbar-dark fixed-top py-3">
     <div class="container">
       <a class="navbar-brand" href="index.php">
         <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo" width="800" height="298">
@@ -37,9 +37,9 @@ $error = $_GET['error'] ?? '';
       </div>
 
       <?php if (isset($_GET['error']) && !empty($_GET['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show"
+        <div class="alert alert-danger alert-dismissible fade show alert-hb alert-hb-error"
             role="alert"
-            style="background:#2a1111;border:1px solid #8b1a1a;color:#f0ede8;border-radius:2px">
+            >
 
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
 
@@ -98,7 +98,7 @@ $error = $_GET['error'] ?? '';
           <div class="col-sm-6">
             <label for="telefono" class="form-label">Teléfono</label>
             <div class="input-group">
-              <span class="input-group-text" style="background:var(--bg4);border:1px solid var(--border);border-right:none;color:var(--muted);border-radius:2px 0 0 2px;font-size:13px">+54</span>
+              <span class="input-group-text">+54</span>
               <input type="tel" class="form-control" id="telefono" name="telefono"
                 placeholder="11 1234-5678" required
                 pattern="[0-9\s\-]{8,15}"
@@ -125,8 +125,7 @@ $error = $_GET['error'] ?? '';
               <input type="password" class="form-control" id="password" name="password"
                 placeholder="Mínimo 10, con letras y números" required minlength="10" maxlength="72" autocomplete="new-password"
                 style="border-right:none!important">
-              <button class="btn" type="button"
-                style="background:var(--bg4);border:1px solid var(--border);border-left:none;color:var(--muted);border-radius:0 2px 2px 0;padding:0 12px"
+              <button class="btn btn-toggle-pass" type="button"
                 onclick="togglePassword('password', this)">
                 <i class="bi bi-eye"></i>
               </button>
@@ -139,8 +138,7 @@ $error = $_GET['error'] ?? '';
               <input type="password" class="form-control" id="password_confirm" name="password_confirm"
                 placeholder="Repetí la contraseña" required
                 style="border-right:none!important">
-              <button class="btn" type="button"
-                style="background:var(--bg4);border:1px solid var(--border);border-left:none;color:var(--muted);border-radius:0 2px 2px 0;padding:0 12px"
+              <button class="btn btn-toggle-pass" type="button"
                 onclick="togglePassword('password_confirm', this)">
                 <i class="bi bi-eye"></i>
               </button>
@@ -156,7 +154,7 @@ $error = $_GET['error'] ?? '';
               id="terminos"
               name="terminos"
               required
-              style="background-color:var(--bg4);border-color:var(--border)"
+              
             >
 
             <label class="form-check-label" for="terminos" style="font-size:12px;color:var(--muted)">

@@ -164,24 +164,24 @@ try {
   </div>
 </div>
 
-<section class="py-section" style="background:var(--bg)">
+<section class="py-section section-plain">
   <div class="container">
     <div class="row g-5">
 
       <div class="col-lg-7">
 
         <?php if ($success === '1'): ?>
-          <div class="alert fade show mb-4" role="alert"
-            style="background:#0d2418;border:1px solid #2a6644;color:#7ecba1;border-radius:2px;padding:16px 20px">
+          <div class="alert fade show mb-4 alert-hb alert-hb-success" role="alert"
+            >
             <i class="bi bi-check2-circle me-2"></i>
             Mensaje enviado correctamente. Te contactaremos a la brevedad.
           </div>
         <?php endif; ?>
 
         <?php if (!empty($error)): ?>
-          <div class="alert alert-dismissible fade show mb-4"
+          <div class="alert alert-dismissible fade show mb-4 alert-hb alert-hb-error"
               role="alert"
-              style="background:#2a1111;border:1px solid #8b1a1a;color:#f0ede8;border-radius:2px">
+              >
 
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
 
@@ -206,7 +206,7 @@ try {
           </div>
         <?php endif; ?>
 
-        <form action="../controllers/ContactController.php" method="POST" id="contactForm" novalidate><?= csrf_field() ?>
+        <form action="../controllers/ContactController.php" method="POST" id="contactForm" class="contact-form" novalidate><?= csrf_field() ?>
           <div class="row g-3">
 
             <div class="col-sm-6">

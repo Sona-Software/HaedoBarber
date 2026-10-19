@@ -267,6 +267,7 @@ function obtenerRutaFoto($foto) {
         <div class="admin-empty-state">
           <i class="bi bi-person-badge"></i>
           <p>No hay barberos activos cargados.</p>
+          <small>Usá el botón «Nuevo barbero» para sumar al primero.</small>
         </div>
 
       <?php else: ?>

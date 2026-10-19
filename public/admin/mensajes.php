@@ -96,10 +96,10 @@ try {
         </nav>
       </div>
 
-      <a href="../../controllers/AuthController.php?logout=1" class="admin-logout">
+      <form action="../../controllers/AuthController.php" method="POST" style="display:contents"><?= csrf_field() ?><input type="hidden" name="action" value="logout"><button type="submit" class="admin-logout">
         <i class="bi bi-box-arrow-left"></i>
         Cerrar sesión
-      </a>
+      </button></form>
     </aside>
 
     <section class="admin-main">

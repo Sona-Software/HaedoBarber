@@ -178,8 +178,8 @@ try {
         <div class="col-lg-5 d-none d-lg-flex justify-content-end">
           <div class="hero-img-frame">
             <div class="hero-img-inner">
-              <img src="assets/img/logo-haedobarber.png"
-                   alt="Haedo Barber"
+              <img src="assets/img/sucursalia.webp"
+                   alt="Barbero trabajando"
                    class="hero-photo">
             </div>
 
@@ -291,9 +291,10 @@ try {
         <?php if (empty($servicios)): ?>
 
           <div class="col-lg-8">
-            <div class="admin-empty-state">
+            <div class="empty-state">
               <i class="bi bi-scissors"></i>
               <p>Próximamente vamos a publicar nuestros servicios disponibles.</p>
+              <a href="contacto.php" class="btn btn-outline-gold btn-sm">Consultanos</a>
             </div>
           </div>
 

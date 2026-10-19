@@ -15,7 +15,7 @@
 <body class="auth-page">
 
   <!-- Navbar mínima -->
-  <nav class="navbar navbar-dark fixed-top py-3" style="background:rgba(10,10,10,0.95);border-bottom:1px solid var(--border)">
+  <nav class="navbar navbar-dark fixed-top py-3">
     <div class="container">
       <a class="navbar-brand" href="index.php">
         <img src="assets/img/logo-haedobarber.png?v=2" alt="Haedo Barber" class="brand-logo" width="800" height="298">
@@ -44,17 +44,17 @@
           ];
         ?>
         <?php if (isset($mensajesError[$error])): ?>
-          <div class="alert alert-danger alert-dismissible fade show"
+          <div class="alert alert-danger alert-dismissible fade show alert-hb alert-hb-error"
               role="alert"
-              style="background:#2a1111;border:1px solid #8b1a1a;color:#f0ede8;border-radius:2px">
+              >
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <?php echo htmlspecialchars($mensajesError[$error]); ?>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
           </div>
         <?php elseif (($_GET['logout'] ?? '') === 'exitoso'): ?>
-          <div class="alert alert-dismissible fade show"
+          <div class="alert alert-dismissible fade show alert-hb alert-hb-success"
               role="alert"
-              style="background:#0d2418;border:1px solid #2a6644;color:#7ecba1;border-radius:2px">
+              >
             <i class="bi bi-check2-circle me-2"></i>
             Cerraste sesión correctamente.
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
@@ -68,7 +68,7 @@
           <div class="mb-4">
             <label for="email" class="form-label">Email</label>
             <div class="input-group">
-              <span class="input-group-text" style="background:var(--bg4);border:1px solid var(--border);border-right:none;color:var(--muted);border-radius:2px 0 0 2px">
+              <span class="input-group-text">
                 <i class="bi bi-envelope"></i>
               </span>
               <input
@@ -88,7 +88,7 @@
           <div class="mb-4">
             <label for="password" class="form-label">Contraseña</label>
             <div class="input-group">
-              <span class="input-group-text" style="background:var(--bg4);border:1px solid var(--border);border-right:none;color:var(--muted);border-radius:2px 0 0 2px">
+              <span class="input-group-text">
                 <i class="bi bi-lock"></i>
               </span>
               <input
@@ -101,8 +101,7 @@
                 autocomplete="current-password"
                 style="border-left:none!important;border-right:none!important"
               >
-              <button class="btn" type="button" id="togglePass"
-                style="background:var(--bg4);border:1px solid var(--border);border-left:none;color:var(--muted);border-radius:0 2px 2px 0;padding:0 14px"
+              <button class="btn btn-toggle-pass" type="button" id="togglePass"
                 onclick="togglePassword('password', this)">
                 <i class="bi bi-eye"></i>
               </button>
@@ -112,7 +111,7 @@
           <div class="d-flex justify-content-between align-items-center mb-4">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" name="recordar" id="recordar"
-                style="background-color:var(--bg4);border-color:var(--border)">
+                >
               <label class="form-check-label" for="recordar" style="font-size:12px;color:var(--muted)">Recordarme</label>
             </div>
             <a href="contacto.php" class="text-gold text-decoration-none" style="font-size:12px">¿Olvidaste tu contraseña?</a>

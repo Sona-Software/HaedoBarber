@@ -298,7 +298,7 @@ try {
         Nuestros <span class="text-gold">Barberos</span>
       </h2>
 
-      <p style="color:var(--muted);font-size:14px;max-width:500px;margin:0 auto">
+      <p class="section-body mx-auto" style="max-width:500px">
         Cada barbero tiene su estilo. Elegí el tuyo y reservá tu turno directo con él.
       </p>
     </div>
@@ -308,7 +308,7 @@ try {
       <?php if (empty($barberos)): ?>
 
         <div class="col-lg-8">
-          <div class="admin-empty-state">
+          <div class="empty-state">
             <i class="bi bi-person-badge"></i>
             <p>Próximamente vas a poder conocer al equipo de esta sede.</p>
           </div>
@@ -432,7 +432,7 @@ try {
 
     <?php if (empty($galeriaSede)): ?>
 
-      <div class="admin-empty-state">
+      <div class="empty-state">
         <i class="bi bi-images"></i>
         <p>Esta sede todavía no tiene fotos cargadas en la galería.</p>
       </div>
@@ -479,7 +479,7 @@ try {
   </div>
 </section>
 
-<section style="background:var(--bg2);padding:60px 0">
+<section class="py-section section-plain">
   <div class="container">
     <div class="row align-items-center g-5">
 

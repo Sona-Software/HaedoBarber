@@ -70,7 +70,6 @@ function obtenerEstadoSesion($usuario, $adminActualId) {
     }
 
     if (
-        !empty($usuario["remember_token_hash"]) &&
         !empty($usuario["remember_token_expira"]) &&
         strtotime($usuario["remember_token_expira"]) > time()
     ) {
@@ -81,15 +80,12 @@ function obtenerEstadoSesion($usuario, $adminActualId) {
 }
 
 try {
+    recordar_asegurar_tabla($conn); // por si falta correr database/migrations_004_remember_tokens.sql
     $sqlStats = "SELECT
                     COUNT(*) AS total,
                     SUM(CASE WHEN rol = 'general' THEN 1 ELSE 0 END) AS generales,
                     SUM(CASE WHEN rol = 'admin' THEN 1 ELSE 0 END) AS admins,
-                    SUM(CASE
-                        WHEN remember_token_hash IS NOT NULL
-                        AND remember_token_expira > NOW()
-                        THEN 1 ELSE 0
-                    END) AS sesiones_activas
+                    (SELECT COUNT(DISTINCT usuario_id) FROM remember_tokens WHERE expira > NOW()) AS sesiones_activas
                  FROM usuarios";
 
     $stmtStats = $conn->prepare($sqlStats);
@@ -110,8 +106,7 @@ try {
                 rol,
                 creado_en,
                 ultimo_acceso,
-                remember_token_hash,
-                remember_token_expira
+                (SELECT MAX(rt.expira) FROM remember_tokens rt WHERE rt.usuario_id = usuarios.id AND rt.expira > NOW()) AS remember_token_expira
             FROM usuarios
             WHERE 1 = 1";
 
@@ -466,7 +461,7 @@ try {
 
                     <?php else: ?>
 
-                      <span class="admin-badge-inactive">
+                      <span class="admin-badge-absent">
                         General
                       </span>
 
@@ -505,7 +500,7 @@ try {
 
                     <?php else: ?>
 
-                      <span class="admin-badge-inactive">
+                      <span class="admin-badge-absent">
                         Inactiva
                       </span>
 
