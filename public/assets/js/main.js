@@ -89,26 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ---- FORMULARIO DE CONTACTO: validación básica (contacto.php) ---- */
-  const contactForm = document.getElementById('contactForm');
-  if (contactForm) {
-    contactForm.addEventListener('submit', function(e) {
-      const inputs = this.querySelectorAll('[required]');
-      let valid = true;
-      inputs.forEach(input => {
-        if (!input.value.trim()) {
-          input.classList.add('is-invalid');
-          valid = false;
-        } else {
-          input.classList.remove('is-invalid');
-        }
-      });
-      if (!valid) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
-  }
 
   /* ---- FORMULARIO DE REGISTRO: validación de contraseñas ---- */
  const registerForm = document.getElementById('registerForm');

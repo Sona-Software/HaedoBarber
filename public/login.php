@@ -1,8 +1,9 @@
-<?php require_once __DIR__ . '/../config/security.php'; ?>
+<?php require_once __DIR__ . '/../config/security.php'; require_once __DIR__ . '/../config/site.php'; ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="format-detection" content="telephone=no">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ingresar | Haedo Barber</title>
   <link rel="icon" type="image/png" href="assets/img/favicon.png?v=2">
@@ -114,7 +115,8 @@
                 >
               <label class="form-check-label" for="recordar" style="font-size:12px;color:var(--muted)">Recordarme</label>
             </div>
-            <a href="contacto.php" class="text-gold text-decoration-none" style="font-size:12px">¿Olvidaste tu contraseña?</a>
+            <?php $waOlvido = sitio_whatsapp_url() !== '' ? sitio_whatsapp_url() . '?text=' . rawurlencode('Hola Haedo Barber, olvidé mi contraseña') : 'contacto.php'; ?>
+            <a href="<?php echo sitio_h($waOlvido); ?>" target="_blank" rel="noopener noreferrer" class="text-gold text-decoration-none" style="font-size:12px" title="Escribinos por WhatsApp y te ayudamos">¿Olvidaste tu contraseña?</a>
           </div>
 
           <button type="submit" class="btn btn-gold w-100 py-3">

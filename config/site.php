@@ -13,7 +13,7 @@ function sitio_defaults(): array
     return [
         'CONTACT_EMAIL' => '',
         'CONTACT_PHONE' => '+54 9 11 2544-4383',
-        'CONTACT_ADDRESS' => 'Las Bases 199, B1706 Haedo, Provincia de Buenos Aires',
+        'CONTACT_ADDRESS' => 'Las Bases 199, B1706 Haedo',
         'HORARIO_TEXTO' => 'Lun a Sáb · 10:30 a 20:30',
         'INSTAGRAM_HANDLE' => '@haedobarber',
         'INSTAGRAM_URL' => 'https://www.instagram.com/haedobarber/',

@@ -3,8 +3,25 @@ require_once '../config/session_check.php';
 require_once '../config/site.php';
 require_once '../config/turnos_helper.php';
 
-$success = $_GET['success'] ?? '';
-$error = $_GET['error'] ?? '';
+// Contacto por WhatsApp: helpers locales (sin formulario ni email).
+function contacto_wa(string $texto): string
+{
+    $base = sitio_whatsapp_url();
+    if ($base === '') {
+        return '';
+    }
+    $base = preg_replace('/[?#].*$/', '', $base);
+    return $base . '?text=' . rawurlencode($texto);
+}
+
+$direccion = trim((string) preg_replace('/,?\s*Provincia de Buenos Aires\s*$/iu', '', sitio_direccion()));
+$direccionUrl = $direccion === '' ? '' : 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($direccion);
+$waPrincipal = contacto_wa('Hola Haedo Barber, quería consultar por un turno');
+$waChips = [
+    ['Consultar por un turno', 'bi-calendar-check', 'Hola Haedo Barber, quería consultar por un turno'],
+    ['Consultar por un servicio', 'bi-scissors', 'Hola Haedo Barber, quería consultar por un servicio'],
+    ['Consultar precios', 'bi-tag', 'Hola Haedo Barber, quería consultar los precios'],
+];
 $sedes = [];
 try {
     $sqlSedes = "SELECT *
@@ -26,6 +43,7 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="format-detection" content="telephone=no">
   <title>Contacto | Haedo Barber</title>
   <link rel="icon" type="image/png" href="assets/img/favicon.png?v=2">
   <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png?v=2">
@@ -158,239 +176,98 @@ try {
   </div>
 </nav>
 
-<div class="page-hero">
+<header class="hb-c-hero">
   <div class="container">
     <p class="section-eyebrow">Hablemos</p>
     <h1 class="section-title">Contacto</h1>
-    <p>¿Tenés una pregunta? Mandanos un mensaje y te respondemos pronto.</p>
+    <p>Escribinos por WhatsApp y te respondemos a la brevedad.</p>
   </div>
-</div>
+</header>
 
-<section class="py-section section-plain">
-  <div class="container">
-    <div class="row g-5">
+<main class="hb-c-main">
+  <div class="container hb-c-wrap">
 
-      <div class="col-lg-7">
-
-        <?php if ($success === '1'): ?>
-          <div class="alert fade show mb-4 alert-hb alert-hb-success" role="alert"
-            >
-            <i class="bi bi-check2-circle me-2"></i>
-            Mensaje enviado correctamente. Te contactaremos a la brevedad.
-          </div>
-        <?php endif; ?>
-
-        <?php if (!empty($error)): ?>
-          <div class="alert alert-dismissible fade show mb-4 alert-hb alert-hb-error"
-              role="alert"
-              >
-
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-
-            <?php
-              if ($error === 'campos_vacios') {
-                echo 'Completá todos los campos obligatorios.';
-              } elseif ($error === 'email_invalido') {
-                echo 'Ingresá un email válido.';
-              } elseif ($error === 'demasiados_intentos') {
-                echo 'Enviaste muchos mensajes seguidos. Probá de nuevo más tarde.';
-              } elseif ($error === 'db_error') {
-                echo 'Hubo un error al guardar el mensaje.';
-              } else {
-                echo 'Ocurrió un error al enviar el formulario.';
-              }
-            ?>
-
-            <button type="button"
-                    class="btn-close btn-close-white"
-                    data-bs-dismiss="alert">
-            </button>
-          </div>
-        <?php endif; ?>
-
-        <form action="../controllers/ContactController.php" method="POST" id="contactForm" class="contact-form" novalidate><?= csrf_field() ?>
-          <div class="row g-3">
-
-            <div class="col-sm-6">
-              <label for="nombre" class="form-label">Nombre completo</label>
-              <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Juan Pérez" required maxlength="120">
-              <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá tu nombre.</div>
-            </div>
-
-            <div class="col-sm-6">
-              <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" name="email" placeholder="juan@ejemplo.com" required maxlength="120">
-              <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá un email válido.</div>
-            </div>
-
-            <div class="col-12">
-              <label for="asunto" class="form-label">Asunto</label>
-              <input type="text" class="form-control" id="asunto" name="asunto" placeholder="¿Sobre qué nos escribís?" maxlength="150">
-              <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label>No completar este campo <input type="text" name="sitio_web" tabindex="-1" autocomplete="off"></label></div>
-            </div>
-
-            <div class="col-12">
-              <label for="mensaje" class="form-label">Mensaje</label>
-              <textarea class="form-control" id="mensaje" name="mensaje" rows="6" maxlength="500"
-                placeholder="Escribí tu consulta acá..." required></textarea>
-
-              <div class="d-flex justify-content-between mt-1">
-                <div class="invalid-feedback" style="font-size:11px;color:#e05555">Ingresá tu mensaje.</div>
-                <span id="char-count" style="font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;flex-shrink:0;margin-left:12px">0 / 500</span>
-              </div>
-            </div>
-
-            <div class="col-12 mt-2">
-              <button type="submit" class="btn btn-gold py-3 px-5">
-                Enviar mensaje <i class="bi bi-send ms-2"></i>
-              </button>
-            </div>
-
-          </div>
-        </form>
-      </div>
-
-      <div class="col-lg-5">
-        <div class="contact-card">
-          <h3 style="font-family:var(--font-display);font-size:24px;color:var(--cream);letter-spacing:1px;margin-bottom:24px">ENCONTRANOS</h3>
-
-          <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:18px">
-            <?php if (sitio_direccion() !== ''): ?>
-            <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-geo-alt-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
-              <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Dirección</p>
-                <a class="hb-contact-link" href="<?php echo sitio_h(sitio_direccion_url()); ?>" target="_blank" rel="noopener noreferrer"><?php echo sitio_h(sitio_direccion()); ?></a>
-              </div>
-            </li>
-            <?php endif; ?>
-
-            <?php if (!empty($sedes)): ?>
-            <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-shop" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
-              <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Sedes</p>
-                <p style="color:var(--muted);font-size:13px;margin:0">
-                  <?php foreach ($sedes as $sede): ?>
-                    <a href="sede.php?id=<?php echo $sede["id"]; ?>" style="color:var(--gold);text-decoration:none">
-                      <?php echo htmlspecialchars($sede["nombre"]); ?>
-                    </a>
-                    — <?php echo htmlspecialchars($sede["direccion"]); ?><br>
-                  <?php endforeach; ?>
-                </p>
-              </div>
-            </li>
-            <?php endif; ?>
-
-            <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-clock-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0"></i>
-              <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Horarios</p>
-                <p style="color:var(--muted);font-size:13px;margin:0"><?php echo htmlspecialchars(turnos_horario_texto()); ?><br>Domingos: cerrado</p>
-              </div>
-            </li>
-
-            <?php if (sitio_whatsapp_url() !== ''): ?>
-            <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-whatsapp" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
-              <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">WhatsApp</p>
-                <a class="hb-contact-link" href="<?php echo sitio_h(sitio_whatsapp_url()); ?>" target="_blank" rel="noopener noreferrer"><?php echo sitio_h(sitio_telefono() ?: 'WhatsApp'); ?></a>
-              </div>
-            </li>
-            <?php elseif (sitio_telefono() !== ''): ?>
-            <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-telephone-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
-              <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Teléfono</p>
-                <a class="hb-contact-link" href="tel:<?php echo sitio_h(sitio_telefono_tel()); ?>"><?php echo sitio_h(sitio_telefono()); ?></a>
-              </div>
-            </li>
-            <?php endif; ?>
-
-            <?php if (sitio_instagram_url() !== ''): ?>
-            <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-instagram" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
-              <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Instagram</p>
-                <a class="hb-contact-link" href="<?php echo sitio_h(sitio_instagram_url()); ?>" target="_blank" rel="noopener noreferrer"><?php echo sitio_h(sitio_instagram_handle() ?: 'Instagram'); ?></a>
-              </div>
-            </li>
-            <?php endif; ?>
-
-            <?php if (sitio_tiktok_url() !== ''): ?>
-            <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-tiktok" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
-              <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">TikTok</p>
-                <a class="hb-contact-link" href="<?php echo sitio_h(sitio_tiktok_url()); ?>" target="_blank" rel="noopener noreferrer">@haedobarber</a>
-              </div>
-            </li>
-            <?php endif; ?>
-
-            <?php if (sitio_email() !== ''): ?>
-            <li style="display:flex;gap:14px;align-items:flex-start">
-              <i class="bi bi-envelope-fill" style="color:var(--gold);font-size:18px;margin-top:2px;flex-shrink:0" aria-hidden="true"></i>
-              <div>
-                <p style="color:var(--cream);font-size:14px;margin:0;font-weight:600">Email</p>
-                <a class="hb-contact-link" href="mailto:<?php echo sitio_h(sitio_email()); ?>"><?php echo sitio_h(sitio_email()); ?></a>
-              </div>
-            </li>
-            <?php endif; ?>
-          </ul>
-
-          <?php if (sitio_whatsapp_url() !== ''): ?>
-          <a class="hb-whatsapp-btn" href="<?php echo sitio_h(sitio_whatsapp_url()); ?>" target="_blank" rel="noopener noreferrer">
-            <i class="bi bi-whatsapp" aria-hidden="true"></i> Escribinos por WhatsApp
+    <?php if ($waPrincipal !== ''): ?>
+    <section class="hb-c-cta" aria-label="Contacto por WhatsApp">
+      <a class="btn btn-gold btn-lg" href="<?php echo sitio_h($waPrincipal); ?>" target="_blank" rel="noopener noreferrer">
+        <i class="bi bi-whatsapp" aria-hidden="true"></i> Escribinos por WhatsApp
+      </a>
+      <?php if (sitio_telefono() !== ''): ?>
+        <p class="hb-c-note"><?php echo sitio_h(sitio_telefono()); ?></p>
+      <?php endif; ?>
+      <div class="hb-c-chips">
+        <?php foreach ($waChips as $chip): ?>
+          <a class="hb-c-chip" href="<?php echo sitio_h(contacto_wa($chip[2])); ?>" target="_blank" rel="noopener noreferrer">
+            <i class="bi <?php echo sitio_h($chip[1]); ?> me-2" aria-hidden="true"></i><?php echo sitio_h($chip[0]); ?>
           </a>
-          <?php endif; ?>
-        </div>
+        <?php endforeach; ?>
+      </div>
+    </section>
+    <?php endif; ?>
 
-        <?php if (sitio_mapa_url() !== ''): ?><div class="hb-map">
+    <section aria-labelledby="encontranos">
+      <h2 class="hb-c-title" id="encontranos">ENCONTRANOS</h2>
+      <div class="hb-c-grid">
+
+        <ul class="hb-c-list">
+          <?php if ($direccion !== ''): ?>
+          <li>
+            <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+            <div>
+              <span class="hb-c-label">Dirección</span>
+              <a class="hb-c-val" href="<?php echo sitio_h($direccionUrl); ?>" target="_blank" rel="noopener noreferrer"><?php echo sitio_h($direccion); ?></a>
+            </div>
+          </li>
+          <?php endif; ?>
+
+          <li>
+            <i class="bi bi-clock-fill" aria-hidden="true"></i>
+            <div>
+              <span class="hb-c-label">Horario</span>
+              <span class="hb-c-val"><?php echo sitio_h(turnos_horario_texto()); ?></span>
+            </div>
+          </li>
+
+          <?php if (sitio_instagram_url() !== ''): ?>
+          <li>
+            <i class="bi bi-instagram" aria-hidden="true"></i>
+            <div>
+              <span class="hb-c-label">Instagram</span>
+              <a class="hb-c-val" href="<?php echo sitio_h(sitio_instagram_url()); ?>" target="_blank" rel="noopener noreferrer"><?php echo sitio_h(sitio_instagram_handle() ?: 'Instagram'); ?></a>
+            </div>
+          </li>
+          <?php endif; ?>
+
+          <?php if (sitio_tiktok_url() !== ''): ?>
+          <li>
+            <i class="bi bi-tiktok" aria-hidden="true"></i>
+            <div>
+              <span class="hb-c-label">TikTok</span>
+              <a class="hb-c-val" href="<?php echo sitio_h(sitio_tiktok_url()); ?>" target="_blank" rel="noopener noreferrer">@haedobarber</a>
+            </div>
+          </li>
+          <?php endif; ?>
+        </ul>
+
+        <?php if (sitio_mapa_url() !== ''): ?>
+        <div class="hb-c-map">
           <iframe
             src="<?php echo sitio_h(sitio_mapa_url()); ?>"
-            width="600" height="320"
-            style="border:0"
+            width="600" height="450"
             allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-            title="Mapa con la ubicación de Haedo Barber en Las Bases 199, Haedo">
-          </iframe>
-        </div><?php endif; ?>
-      </div>
+            title="Mapa con la ubicación de Haedo Barber en Las Bases 199, Haedo"></iframe>
+        </div>
+        <?php endif; ?>
 
-    </div>
+      </div>
+    </section>
+
   </div>
-</section>
+</main>
 
 <?php require __DIR__ . '/partials/footer.php'; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-  const textarea = document.getElementById('mensaje');
-  const counter = document.getElementById('char-count');
-
-  if (textarea && counter) {
-    textarea.addEventListener('input', () => {
-      const len = textarea.value.length;
-      counter.textContent = `${len} / 500`;
-      counter.style.color = len > 450 ? 'var(--gold)' : 'var(--muted)';
-      textarea.maxLength = 500;
-    });
-  }
-
-  const form = document.getElementById('contactForm');
-
-  if (form) {
-    form.addEventListener('submit', e => {
-      if (!form.checkValidity()) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      form.classList.add('was-validated');
-    });
-  }
-</script>
 
 <script src="assets/js/main.js"></script>
 </body>

@@ -45,3 +45,12 @@ Hasta que haya sedes, barberos y servicios cargados, el sitio muestra estados va
 - **"Recordar inicio de sesión"**: cookie `remember` (selector:validator, HttpOnly, SameSite=Lax, 30 días fijos, `Secure` sólo bajo HTTPS) con un token por dispositivo en la tabla `remember_tokens` (máx. 10 por usuario). Cerrar sesión revoca sólo el dispositivo actual. En una base existente correr `database/migrations_004_remember_tokens.sql` (si no, la app crea la tabla sola).
 - **Migraciones**: en una base existente correr `database/migrations_002_security.sql` (crea `intentos_acceso`, agrega `usuarios.remember_selector`, invalida tokens viejos y borra las cuentas de prueba `*.test` sin turnos).
 - Si el sitio está detrás de un proxy/balanceador que termina HTTPS, definir `TRUST_PROXY=1` en `.env` para respetar `X-Forwarded-Proto` / `X-Forwarded-For`.
+
+## Mantenimiento de seguridad
+
+- **Actualizar PHP**: en octubre de 2026 se publicaron parches críticos (CVE-2026-109618 y CVE-2026-109619, RCE en PHP < 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12; ver php.net/ChangeLog-8.php). XAMPP no trae aún un instalador con esas versiones: hay que reemplazar la carpeta `C:\xampp\php` por el zip Thread Safe x64 de windows.php.net/download (conservando `php.ini` y verificando el SHA256), siempre con copia previa de `htdocs`, `php.ini`, `apache\conf` y un dump de la base (`mysqldump -u root haedobarber_db > backup.sql`).
+- **Revisar versiones**: `C:\xampp\php\php.exe -v`, `C:\xampp\apache\bin\httpd.exe -v`, `C:\xampp\mysql\bin\mysql.exe --version`, `C:\xampp\phpMyAdmin\README` (versión) y `const VERSION` en `libs/PHPMailer/PHPMailer.php`.
+- **Actualizar PHPMailer**: bajar la release oficial desde github.com/PHPMailer/PHPMailer/releases y reemplazar sólo `Exception.php`, `PHPMailer.php` y `SMTP.php` en `libs/PHPMailer/`.
+- **Apache / phpMyAdmin**: seguir httpd.apache.org/security y phpmyadmin.net/security; phpMyAdmin debe quedar accesible sólo desde `localhost` (`Require local`, como viene en XAMPP).
+- **php.ini recomendado**: `expose_php=Off`, `display_errors=Off`, `session.use_strict_mode=1`, `session.cookie_httponly=1`, `session.upload_progress.enabled=0`, `post_max_size` y `upload_max_filesize` acotados (la app acepta imágenes de hasta 5 MB). No exponer `/php-cgi/` (CVE-2024-4577): PHP debe correr como `mod_php`.
+- No exponer el servidor a internet con una versión de PHP sin parchear; reiniciar Apache tras cada cambio de configuración.

@@ -126,7 +126,7 @@ try {
     <div class="admin-section-header">
         <div>
             <h3>Mensajes de contacto</h3>
-            <p>Consultas enviadas desde el formulario de contacto del sitio.</p>
+            <p>Historial de consultas recibidas por el antiguo formulario. Ahora la atención es por WhatsApp.</p>
         </div>
     </div>
 
