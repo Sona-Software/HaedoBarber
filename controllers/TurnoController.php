@@ -190,6 +190,16 @@ if ($accion === "crear") {
             $volver($errUsuario);
         }
 
+        // Cupo semanal: dentro del cupo nace confirmado; pasado el cupo va a la canasta de confirmación manual.
+        [$creadasSemana, $enCanasta] = turnos_conteos_usuario($conn, $usuarioId, time());
+        $decision = turnos_decidir_estado($creadasSemana, $enCanasta);
+        if ($decision["error"] !== null) {
+            $conn->rollBack();
+            $volver($decision["error"]);
+        }
+        $estadoNuevo = $decision["estado"];
+        $requiereConfirmacion = $decision["requiere_confirmacion"];
+
         foreach (turnos_ocupados_barbero($conn, $barberoId, $fecha) as $ocupado) {
             $iniEx = turnos_ts($fecha, substr($ocupado["hora"], 0, 5));
             $finEx = $iniEx + (intval($ocupado["duracion_min"]) * 60);
@@ -201,10 +211,12 @@ if ($accion === "crear") {
         }
 
         $stmtCrear = $conn->prepare("INSERT INTO turnos
-                        (usuario_id, sede_id, barbero_id, servicio_id, fecha, hora, estado, observaciones)
+                        (usuario_id, sede_id, barbero_id, servicio_id, fecha, hora, estado, requiere_confirmacion, observaciones)
                      VALUES
-                        (:usuario_id, :sede_id, :barbero_id, :servicio_id, :fecha, :hora, 'pendiente', :observaciones)");
+                        (:usuario_id, :sede_id, :barbero_id, :servicio_id, :fecha, :hora, :estado, :requiere, :observaciones)");
         $stmtCrear->execute([
+            ":estado" => $estadoNuevo,
+            ":requiere" => $requiereConfirmacion,
             ":usuario_id" => $usuarioId,
             ":sede_id" => $sedeId,
             ":barbero_id" => $barberoId,
@@ -246,20 +258,32 @@ if ($accion === "crear") {
         $nombreServicio = $stmtServ->fetchColumn();
 
         if ($userData && $userData["email"]) {
-            EmailService::enviarConfirmacion(
-                $userData["email"],
-                $userData["nombre"],
-                $fecha,
-                $hora,
-                $nombreSede,
-                $nombreServicio
-            );
+            if ($requiereConfirmacion === 1) {
+                EmailService::enviarPendiente(
+                    $userData["email"],
+                    $userData["nombre"],
+                    $fecha,
+                    $hora,
+                    $nombreSede,
+                    $nombreServicio
+                );
+            } else {
+                EmailService::enviarConfirmacion(
+                    $userData["email"],
+                    $userData["nombre"],
+                    $fecha,
+                    $hora,
+                    $nombreSede,
+                    $nombreServicio
+                );
+            }
         }
     } catch (\Throwable $e) {
         error_log("Haedo Barber: error enviando confirmación: " . $e->getMessage());
     }
 
-    header("Location: ../public/user/panel_usuario.php?success=turno_creado");
+    $resultado = $requiereConfirmacion === 1 ? "turno_pendiente" : "turno_confirmado";
+    header("Location: ../public/user/panel_usuario.php?success=" . $resultado);
     exit;
 }
 

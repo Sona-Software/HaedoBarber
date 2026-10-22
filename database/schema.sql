@@ -126,6 +126,8 @@ CREATE TABLE turnos (
     fecha DATE NOT NULL,
     hora TIME NOT NULL,
     estado ENUM('pendiente','confirmado','cancelado','completado','ausente') NOT NULL DEFAULT 'pendiente',
+    -- 1 = reserva de la "canasta": excedió el cupo semanal y el admin debe confirmarla o rechazarla.
+    requiere_confirmacion TINYINT(1) NOT NULL DEFAULT 0,
     observaciones TEXT NULL,
     recordatorio_enviado TINYINT(1) NOT NULL DEFAULT 0,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -150,6 +152,8 @@ CREATE INDEX idx_turnos_sede ON turnos(sede_id);
 CREATE INDEX idx_turnos_barbero ON turnos(barbero_id);
 CREATE INDEX idx_turnos_servicio ON turnos(servicio_id);
 CREATE INDEX idx_turnos_fecha ON turnos(fecha);
+CREATE INDEX idx_turnos_usuario_creado ON turnos(usuario_id, creado_en);
+CREATE INDEX idx_turnos_canasta ON turnos(requiere_confirmacion, estado);
 -- Solo turnos activos ocupan el horario (un turno cancelado libera el slot).
 CREATE UNIQUE INDEX uq_turno_activo_barbero_fecha_hora
 ON turnos(barbero_id, fecha, hora_activa);

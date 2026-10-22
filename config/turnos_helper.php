@@ -3,7 +3,7 @@
  * Lógica compartida de turnos (horarios, disponibilidad, límites anti-abuso).
  *
  * TODO lo configurable está en este archivo (valores por defecto) y se puede
- * sobrescribir desde .env con la misma clave (ej: TURNOS_MAX_ACTIVOS=3).
+ * sobrescribir desde .env con la misma clave (ej: TURNOS_MAX_SEMANA=4, TURNOS_CANASTA_POLITICA=rechazar).
  *
  * Para cambiar los horarios de trabajo editá TURNOS_BLOQUES, TURNOS_DIAS_CERRADOS
  * y TURNOS_SLOT_MIN más abajo. Los textos visibles salen de turnos_horario_texto().
@@ -18,6 +18,14 @@ function turnos_cfg_int(string $clave, int $defecto): int
         return $defecto;
     }
     return (int) $v;
+}
+
+/** Valor de texto de .env restringido a una lista de opciones permitidas. */
+function turnos_cfg_str(string $clave, string $defecto, array $permitidos): string
+{
+    $v = $_ENV[$clave] ?? getenv($clave);
+    $v = is_string($v) ? strtolower(trim($v)) : '';
+    return in_array($v, $permitidos, true) ? $v : $defecto;
 }
 
 function turnos_def(string $nombre, $valor): void
@@ -42,11 +50,19 @@ turnos_def('TURNOS_ANTICIPACION_MIN_MIN', turnos_cfg_int('TURNOS_ANTICIPACION_MI
 turnos_def('TURNOS_ANTICIPACION_MAX_DIAS', turnos_cfg_int('TURNOS_ANTICIPACION_MAX_DIAS', 30)); // días
 
 /* ----------------------------- Límites por usuario ----------------------------- */
-turnos_def('TURNOS_MAX_ACTIVOS', turnos_cfg_int('TURNOS_MAX_ACTIVOS', 2));              // turnos futuros activos
-turnos_def('TURNOS_MAX_ACTIVOS_NUEVO', turnos_cfg_int('TURNOS_MAX_ACTIVOS_NUEVO', 1));  // hasta completar un primer turno
+// Cupo semanal: cada cuenta puede crear hasta TURNOS_MAX_SEMANA turnos por semana calendario
+// (lunes a domingo, hora de Buenos Aires). Se cuenta por la semana en que se CREA la reserva
+// (no por la fecha del turno): eso limita la velocidad de creación de reservas, que es lo que
+// importa contra el abuso, y evita que alguien bloquee agenda de muchas semanas de golpe sin pasar
+// por revisión. Cuentan todos los turnos no cancelados (pendiente, confirmado, completado, ausente).
+// Pasado el cupo, la reserva NO se rechaza: va a la "canasta" (estado pendiente + requiere_confirmacion=1),
+// reserva el horario y espera que el admin la confirme o rechace.
+turnos_def('TURNOS_MAX_SEMANA', turnos_cfg_int('TURNOS_MAX_SEMANA', 3));
+// Política al exceder el cupo: 'canasta' (confirmación manual, por defecto) o 'rechazar' (se rechaza la reserva).
+turnos_def('TURNOS_CANASTA_POLITICA', turnos_cfg_str('TURNOS_CANASTA_POLITICA', 'canasta', ['canasta', 'rechazar']));
+// Tope de reservas de una cuenta esperando confirmación manual a la vez (evita llenar la agenda con pendientes).
+turnos_def('TURNOS_MAX_CANASTA', turnos_cfg_int('TURNOS_MAX_CANASTA', 3));
 turnos_def('TURNOS_MAX_POR_DIA', turnos_cfg_int('TURNOS_MAX_POR_DIA', 1));              // turnos activos el mismo día
-turnos_def('TURNOS_COOLDOWN_MIN', turnos_cfg_int('TURNOS_COOLDOWN_MIN', 30));           // minutos entre reservas creadas
-turnos_def('TURNOS_CUENTA_MIN_EDAD_MIN', turnos_cfg_int('TURNOS_CUENTA_MIN_EDAD_MIN', 15)); // antigüedad mínima de cuenta
 turnos_def('TURNOS_OBS_MAX', turnos_cfg_int('TURNOS_OBS_MAX', 255));                    // largo máx. de observaciones
 
 /* ----------------------------- Rate limiting ----------------------------- */
@@ -275,10 +291,8 @@ function turnos_mensajes_error(): array
         'anticipacion_maxima' => 'Solo podés reservar con hasta ' . TURNOS_ANTICIPACION_MAX_DIAS . ' días de anticipación.',
         'usuario_turno_superpuesto' => 'Ya tenés un turno activo que se superpone con ese horario.',
         'usuario_turno_mismo_dia' => 'Ya tenés un turno reservado para ese día. Podés reservar un solo turno por día.',
-        'limite_turnos_activos' => 'Alcanzaste el máximo de turnos activos permitidos. Cuando uno se complete o lo canceles vas a poder reservar otro.',
-        'limite_turnos_nuevo' => 'Mientras no completes tu primer turno podés tener solo ' . TURNOS_MAX_ACTIVOS_NUEVO . ' turno activo. Después vas a poder reservar más.',
-        'cooldown_reserva' => 'Reservaste un turno hace muy poco. Esperá unos minutos antes de reservar otro.',
-        'cuenta_nueva' => 'Tu cuenta es muy reciente. Por seguridad vas a poder reservar en unos minutos, volvé a intentar en un rato.',
+        'limite_semanal' => 'Alcanzaste el máximo de ' . TURNOS_MAX_SEMANA . ' turnos por semana. Contactá a la barbería o probá la semana próxima.',
+        'limite_canasta' => 'Ya tenés ' . TURNOS_MAX_CANASTA . ' reservas esperando confirmación de la barbería. Cuando las revisemos vas a poder reservar más.',
         'usuario_bloqueado_ausencias' => 'Por ausencias a turnos anteriores tu cuenta no puede reservar por el momento. Contactá a la barbería si fue un error.',
         'demasiados_intentos' => 'Hiciste demasiados intentos en poco tiempo. Esperá un rato y volvé a probar.',
         'observaciones_largas' => 'Las observaciones son demasiado largas (máximo ' . TURNOS_OBS_MAX . ' caracteres).',
@@ -382,17 +396,13 @@ function turnos_marcar_exito(PDO $conn, ?int $intentoId): void
     }
 }
 
-/** Restricciones de cuenta que impiden reservar: cuenta nueva o bloqueo por ausencias. */
+/** Restricciones de cuenta que impiden reservar: hoy solo el bloqueo por ausencias (una cuenta nueva puede reservar al instante). */
 function turnos_restriccion_usuario(PDO $conn, int $usuarioId): ?string
 {
-    $s = $conn->prepare("SELECT TIMESTAMPDIFF(MINUTE, creado_en, NOW()) FROM usuarios WHERE id = :id");
+    $s = $conn->prepare("SELECT COUNT(*) FROM usuarios WHERE id = :id");
     $s->execute([':id' => $usuarioId]);
-    $edad = $s->fetchColumn();
-    if ($edad === false) {
+    if ((int) $s->fetchColumn() === 0) {
         return 'datos_invalidos';
-    }
-    if ($edad !== null && (int) $edad < TURNOS_CUENTA_MIN_EDAD_MIN) {
-        return 'cuenta_nueva';
     }
 
     $s = $conn->prepare("SELECT COUNT(*) FROM turnos
@@ -405,37 +415,57 @@ function turnos_restriccion_usuario(PDO $conn, int $usuarioId): ?string
     return null;
 }
 
+/**
+ * Semana calendario (lunes 00:00 a lunes siguiente 00:00, hora de Buenos Aires) que contiene $ts.
+ * Devuelve ['YYYY-mm-dd HH:ii:ss' inicio, 'YYYY-mm-dd HH:ii:ss' fin exclusivo].
+ */
+function turnos_semana_rango(int $ts): array
+{
+    $tz = new DateTimeZone(TURNOS_TZ);
+    $d = (new DateTimeImmutable('@' . $ts))->setTimezone($tz)->setTime(0, 0, 0);
+    $lunes = $d->modify('-' . ((int) $d->format('N') - 1) . ' days');
+    return [$lunes->format('Y-m-d H:i:s'), $lunes->modify('+7 days')->format('Y-m-d H:i:s')];
+}
+
+/**
+ * Decisión pura según los conteos: ¿nace confirmado, va a la canasta o se rechaza?
+ * $creadasSemana = turnos no cancelados que la cuenta ya creó esta semana (sin contar el nuevo).
+ * $enCanasta = reservas de la cuenta esperando confirmación manual (pendiente + requiere_confirmacion).
+ * Devuelve ['estado' => 'confirmado'|'pendiente', 'requiere_confirmacion' => 0|1, 'error' => ?string].
+ */
+function turnos_decidir_estado(int $creadasSemana, int $enCanasta): array
+{
+    if ($creadasSemana < TURNOS_MAX_SEMANA) {
+        return ['estado' => 'confirmado', 'requiere_confirmacion' => 0, 'error' => null];
+    }
+    if (TURNOS_CANASTA_POLITICA === 'rechazar') {
+        return ['estado' => 'pendiente', 'requiere_confirmacion' => 0, 'error' => 'limite_semanal'];
+    }
+    if ($enCanasta >= TURNOS_MAX_CANASTA) {
+        return ['estado' => 'pendiente', 'requiere_confirmacion' => 1, 'error' => 'limite_canasta'];
+    }
+    return ['estado' => 'pendiente', 'requiere_confirmacion' => 1, 'error' => null];
+}
+
+/** Conteos de la cuenta para decidir el estado. Llamar dentro de la transacción con el usuario bloqueado. */
+function turnos_conteos_usuario(PDO $conn, int $usuarioId, int $ahora): array
+{
+    [$ini, $fin] = turnos_semana_rango($ahora);
+    $s = $conn->prepare("SELECT COUNT(*) FROM turnos
+                         WHERE usuario_id = :id AND estado <> 'cancelado'
+                         AND creado_en >= :ini AND creado_en < :fin");
+    $s->execute([':id' => $usuarioId, ':ini' => $ini, ':fin' => $fin]);
+    $semana = (int) $s->fetchColumn();
+
+    $s = $conn->prepare("SELECT COUNT(*) FROM turnos
+                         WHERE usuario_id = :id AND estado = 'pendiente' AND requiere_confirmacion = 1");
+    $s->execute([':id' => $usuarioId]);
+    return [$semana, (int) $s->fetchColumn()];
+}
+
 /** Límites por usuario al crear un turno (llamar dentro de la transacción con el usuario bloqueado). */
 function turnos_validar_limites_usuario(PDO $conn, int $usuarioId, string $fecha, int $inicio, int $fin): ?string
 {
-    // Turnos activos futuros
-    $s = $conn->prepare("SELECT COUNT(*) FROM turnos
-                         WHERE usuario_id = :id AND estado IN ('pendiente','confirmado')
-                         AND TIMESTAMP(fecha, hora) >= NOW()");
-    $s->execute([':id' => $usuarioId]);
-    $activos = (int) $s->fetchColumn();
-
-    $s = $conn->prepare("SELECT COUNT(*) FROM turnos WHERE usuario_id = :id AND estado = 'completado'");
-    $s->execute([':id' => $usuarioId]);
-    $esNuevo = ((int) $s->fetchColumn()) === 0;
-
-    if ($esNuevo && $activos >= TURNOS_MAX_ACTIVOS_NUEVO) {
-        return 'limite_turnos_nuevo';
-    }
-    if ($activos >= TURNOS_MAX_ACTIVOS) {
-        return 'limite_turnos_activos';
-    }
-
-    // Cooldown desde la última reserva creada (incluye canceladas: evita reserva-cancela-reserva)
-    if (TURNOS_COOLDOWN_MIN > 0) {
-        $s = $conn->prepare("SELECT TIMESTAMPDIFF(MINUTE, MAX(creado_en), NOW()) FROM turnos WHERE usuario_id = :id");
-        $s->execute([':id' => $usuarioId]);
-        $min = $s->fetchColumn();
-        if ($min !== null && $min !== false && (int) $min < TURNOS_COOLDOWN_MIN) {
-            return 'cooldown_reserva';
-        }
-    }
-
     // Mismo día / solapados
     $s = $conn->prepare("SELECT t.hora, sv.duracion_min FROM turnos t
                          INNER JOIN servicios sv ON sv.id = t.servicio_id

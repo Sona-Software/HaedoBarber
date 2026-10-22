@@ -204,6 +204,12 @@ try {
                     </div>
                 <?php endif; ?>
 
+                <p class="mb-4" style="color:var(--muted);font-size:13px">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Podés reservar <?php echo (int) TURNOS_MAX_SEMANA; ?> turnos por semana (de lunes a domingo) y quedan confirmados al instante.
+                    Si reservás más, el turno queda pendiente de confirmación manual de la barbería.
+                </p>
+
                 <?php if (empty($sedes) || empty($servicios)): ?>
                     <div class="alert alert-info">Todavía no hay sedes o servicios cargados. Volvé a intentar más tarde.</div>
                 <?php endif; ?>
@@ -367,7 +373,7 @@ try {
                         </div>
 
                         <button type="submit" class="btn btn-gold">
-                            Confirmar reserva
+                            Reservar turno
                         </button>
 
                     </form>

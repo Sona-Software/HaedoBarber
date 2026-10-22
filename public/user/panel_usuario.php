@@ -24,6 +24,7 @@ try {
                         t.fecha,
                         t.hora,
                         t.estado,
+                        t.requiere_confirmacion,
                         t.observaciones,
                         s.nombre AS sede_nombre,
                         s.direccion AS sede_direccion,
@@ -204,11 +205,20 @@ function badgeEstadoUsuario($estado) {
 
         </header>
 
-        <?php if ($success === "turno_creado"): ?>
+        <?php if ($success === "turno_confirmado" || $success === "turno_creado"): ?>
             <div class="alert mb-4"
                 style="background:#0d2418;border:1px solid #2a6644;color:#7ecba1;border-radius:2px">
                 <i class="bi bi-check2-circle me-2"></i>
-                Turno reservado correctamente. Cualquier consulta contactar con la barbería.
+                Tu turno quedó confirmado. Cualquier consulta contactá a la barbería.
+            </div>
+        <?php endif; ?>
+
+        <?php if ($success === "turno_pendiente"): ?>
+            <div class="alert mb-4"
+                style="background:#2a1f0d;border:1px solid #8b6a1a;color:#f0ede8;border-radius:2px">
+                <i class="bi bi-hourglass-split me-2"></i>
+                Tu turno quedó pendiente de confirmación: ya reservamos el horario y te avisaremos por WhatsApp cuando la barbería lo confirme.
+                (Cada cuenta tiene <?php echo (int) TURNOS_MAX_SEMANA; ?> turnos confirmados automáticamente por semana; los siguientes se revisan manualmente.)
             </div>
         <?php endif; ?>
 
@@ -289,7 +299,7 @@ function badgeEstadoUsuario($estado) {
 
                 <div>
                     <h3>Próximos turnos</h3>
-                    <p>Acá podés ver tus reservas pendientes o confirmadas.</p>
+                    <p>Acá podés ver tus reservas confirmadas o pendientes de confirmación.</p>
                 </div>
 
             </div>
@@ -361,7 +371,7 @@ function badgeEstadoUsuario($estado) {
 
                                     <td>
                                         <span class="<?php echo badgeEstadoUsuario($turno["estado"]); ?>">
-                                            <?php echo ucfirst($turno["estado"]); ?>
+                                            <?php echo ((int) $turno["requiere_confirmacion"] === 1 && $turno["estado"] === "pendiente") ? "Pendiente de confirmación" : ucfirst($turno["estado"]); ?>
                                         </span>
                                     </td>
 

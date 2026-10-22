@@ -28,6 +28,8 @@ if (!in_array($estadoFiltro, ["pendiente", "confirmado", "cancelado", "completad
 if (!turnos_fecha_valida((string) $fechaFiltro)) {
     $fechaFiltro = "";
 }
+// Vista "Por confirmar" (canasta): reservas que excedieron el cupo semanal y esperan aprobación manual.
+$vistaCanasta = ($_GET["vista"] ?? "") === "canasta";
 $success = $_GET["success"] ?? "";
 $error = $_GET["error"] ?? "";
 
@@ -49,7 +51,8 @@ try {
                     SUM(CASE WHEN fecha = CURDATE() THEN 1 ELSE 0 END) AS hoy,
                     SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) AS pendientes,
                     SUM(CASE WHEN estado = 'confirmado' THEN 1 ELSE 0 END) AS confirmados,
-                    SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados
+                    SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,
+                    SUM(CASE WHEN estado = 'pendiente' AND requiere_confirmacion = 1 THEN 1 ELSE 0 END) AS por_confirmar
                  FROM turnos";
 
     $stmtStats = $conn->prepare($sqlStats);
@@ -63,6 +66,12 @@ try {
                 t.estado,
                 t.observaciones,
                 t.creado_en,
+                t.requiere_confirmacion,
+                (SELECT COUNT(*) FROM turnos x
+                  WHERE x.usuario_id = t.usuario_id AND x.estado <> 'cancelado'
+                    AND x.creado_en >= DATE_SUB(DATE(t.creado_en), INTERVAL WEEKDAY(t.creado_en) DAY)
+                    AND x.creado_en < DATE_ADD(DATE_SUB(DATE(t.creado_en), INTERVAL WEEKDAY(t.creado_en) DAY), INTERVAL 7 DAY)
+                ) AS turnos_semana,
                 u.nombre AS usuario_nombre,
                 u.apellido AS usuario_apellido,
                 u.email AS usuario_email,
@@ -94,7 +103,9 @@ try {
         $params[":buscar"] = "%" . $buscar . "%";
     }
 
-    if ($estadoFiltro !== "") {
+    if ($vistaCanasta) {
+        $sql .= " AND t.estado = 'pendiente' AND t.requiere_confirmacion = 1";
+    } elseif ($estadoFiltro !== "") {
         $sql .= " AND t.estado = :estado";
         $params[":estado"] = $estadoFiltro;
     }
@@ -114,7 +125,8 @@ try {
         $params[":barbero_id"] = $barberoFiltro;
     }
 
-    $sql .= " ORDER BY t.fecha DESC, t.hora DESC";
+    // La canasta se ordena por lo más próximo a ocurrir (lo urgente primero).
+    $sql .= $vistaCanasta ? " ORDER BY t.fecha ASC, t.hora ASC" : " ORDER BY t.fecha DESC, t.hora DESC";
 
     $stmt = $conn->prepare($sql);
 
@@ -134,7 +146,8 @@ try {
         "hoy" => 0,
         "pendientes" => 0,
         "confirmados" => 0,
-        "cancelados" => 0
+        "cancelados" => 0,
+        "por_confirmar" => 0
     ];
     $errorDB = true;
 }
@@ -292,13 +305,14 @@ function badgeEstado($estado) {
         <i class="bi bi-calendar-day"></i>
       </div>
 
-      <div class="admin-stat-card">
+      <a href="turnos.php?vista=canasta"
+         class="admin-stat-card hb-stat-canasta<?php echo intval($stats["por_confirmar"] ?? 0) > 0 ? " has-items" : ""; ?>">
         <div>
-          <span>Pendientes</span>
-          <strong><?php echo intval($stats["pendientes"] ?? 0); ?></strong>
+          <span>Por confirmar</span>
+          <strong><?php echo intval($stats["por_confirmar"] ?? 0); ?></strong>
         </div>
         <i class="bi bi-hourglass-split"></i>
-      </div>
+      </a>
 
       <div class="admin-stat-card">
         <div>
@@ -329,6 +343,45 @@ function badgeEstado($estado) {
 
       </div>
 
+      <?php $porConfirmar = intval($stats["por_confirmar"] ?? 0); ?>
+
+      <nav class="hb-turnos-tabs" aria-label="Vista de turnos">
+        <a href="turnos.php" class="hb-turnos-tab<?php echo !$vistaCanasta ? " active" : ""; ?>">
+          <i class="bi bi-list-ul"></i> Todos
+        </a>
+        <a href="turnos.php?vista=canasta" class="hb-turnos-tab<?php echo $vistaCanasta ? " active" : ""; ?><?php echo $porConfirmar > 0 ? " has-items" : ""; ?>">
+          <i class="bi bi-hourglass-split"></i> Por confirmar
+          <span class="hb-tab-count"><?php echo $porConfirmar; ?></span>
+        </a>
+      </nav>
+
+      <?php if ($porConfirmar > 0 && !$vistaCanasta): ?>
+        <div class="hb-canasta-alert">
+          <i class="bi bi-exclamation-circle"></i>
+          <span>
+            Hay <strong><?php echo $porConfirmar; ?></strong>
+            <?php echo $porConfirmar === 1 ? "reserva esperando" : "reservas esperando"; ?> tu confirmación manual
+            (cuentas que superaron los <?php echo (int) TURNOS_MAX_SEMANA; ?> turnos semanales).
+          </span>
+          <a href="turnos.php?vista=canasta" class="btn btn-gold btn-sm">Revisar ahora</a>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($vistaCanasta): ?>
+        <p class="hb-canasta-help">
+          Estas reservas ya ocupan el horario pero no están confirmadas: la cuenta superó los
+          <?php echo (int) TURNOS_MAX_SEMANA; ?> turnos de la semana. Confirmá o rechazá cada una; el cliente recibe un aviso por mail.
+        </p>
+      <?php endif; ?>
+
+      <?php if ($success === "turno_rechazado"): ?>
+        <div class="alert mb-4"
+             style="background:#0d2418;border:1px solid #2a6644;color:#7ecba1;border-radius:2px">
+          <i class="bi bi-check2-circle me-2"></i>
+          Reserva rechazada: el horario quedó libre otra vez.
+        </div>
+      <?php endif; ?>
+
       <?php if ($success === "estado_actualizado"): ?>
         <div class="alert mb-4"
              style="background:#0d2418;border:1px solid #2a6644;color:#7ecba1;border-radius:2px">
@@ -357,6 +410,10 @@ function badgeEstado($estado) {
 
       <form method="GET"
             class="row g-3 mb-4">
+
+        <?php if ($vistaCanasta): ?>
+          <input type="hidden" name="vista" value="canasta">
+        <?php endif; ?>
 
         <div class="col-md-4">
           <label class="form-label">Buscar</label>
@@ -426,7 +483,7 @@ function badgeEstado($estado) {
             Filtrar
           </button>
 
-          <a href="turnos.php"
+          <a href="turnos.php<?php echo $vistaCanasta ? "?vista=canasta" : ""; ?>"
              class="btn btn-outline-gold">
             Limpiar
           </a>
@@ -445,7 +502,7 @@ function badgeEstado($estado) {
 
         <div class="admin-empty-state">
           <i class="bi bi-calendar-x"></i>
-          <p>No hay turnos para mostrar.</p>
+          <p><?php echo $vistaCanasta ? "No hay reservas por confirmar. ¡Todo al día!" : "No hay turnos para mostrar."; ?></p>
         </div>
 
       <?php else: ?>
@@ -464,14 +521,16 @@ function badgeEstado($estado) {
                 <th>Hora</th>
                 <th>Estado</th>
                 <th>Detalle</th>
+                <?php if ($vistaCanasta): ?><th>Resolver</th><?php endif; ?>
               </tr>
             </thead>
 
             <tbody>
 
               <?php foreach ($turnos as $turno): ?>
+                <?php $esCanasta = ((int) $turno["requiere_confirmacion"] === 1 && $turno["estado"] === "pendiente"); ?>
 
-                <tr>
+                <tr class="<?php echo $esCanasta ? "hb-row-canasta" : ""; ?>">
                   <td>
                     <strong>
                       <?php echo htmlspecialchars($turno["usuario_nombre"] . " " . $turno["usuario_apellido"]); ?>
@@ -480,6 +539,13 @@ function badgeEstado($estado) {
                     <small><?php echo htmlspecialchars($turno["usuario_email"]); ?></small>
                     <br>
                     <small><?php echo htmlspecialchars($turno["usuario_telefono"]); ?></small>
+                    <?php if ($esCanasta): ?>
+                      <br>
+                      <small class="hb-cuenta-semana">
+                        <i class="bi bi-person-exclamation"></i>
+                        <?php echo intval($turno["turnos_semana"]); ?> turnos esa semana (cupo <?php echo (int) TURNOS_MAX_SEMANA; ?>)
+                      </small>
+                    <?php endif; ?>
                   </td>
 
                   <td><?php echo htmlspecialchars($turno["sede_nombre"]); ?></td>
@@ -506,7 +572,7 @@ function badgeEstado($estado) {
 
                   <td>
                     <span class="<?php echo badgeEstado($turno["estado"]); ?>">
-                      <?php echo ucfirst($turno["estado"]); ?>
+                      <?php echo $esCanasta ? "Por confirmar" : ucfirst($turno["estado"]); ?>
                     </span>
                   </td>
 
@@ -518,6 +584,22 @@ function badgeEstado($estado) {
                       Ver
                     </button>
                   </td>
+
+                  <?php if ($vistaCanasta): ?>
+                    <td>
+                      <div class="hb-canasta-actions">
+                        <?php foreach ([["confirmar", "Confirmar", "btn btn-gold btn-sm"], ["rechazar", "Rechazar", "btn admin-btn-danger btn-sm"]] as [$acc, $txt, $cls]): ?>
+                          <form action="../../controllers/AdminTurnoController.php"
+                                method="POST"><?= csrf_field() ?>
+                            <input type="hidden" name="accion" value="<?php echo $acc; ?>">
+                            <input type="hidden" name="id" value="<?php echo $turno["id"]; ?>">
+                            <input type="hidden" name="vista" value="canasta">
+                            <button type="submit" class="<?php echo $cls; ?>"><?php echo $txt; ?></button>
+                          </form>
+                        <?php endforeach; ?>
+                      </div>
+                    </td>
+                  <?php endif; ?>
                 </tr>
 
                 <div class="modal fade"
@@ -586,8 +668,14 @@ function badgeEstado($estado) {
                         </p>
 
                         <p><strong>Estado:</strong>
-                          <?php echo ucfirst($turno["estado"]); ?>
+                          <?php echo $esCanasta ? "Pendiente de confirmación manual" : ucfirst($turno["estado"]); ?>
                         </p>
+
+                        <?php if ($esCanasta): ?>
+                          <p><strong>Cuenta:</strong>
+                            <?php echo intval($turno["turnos_semana"]); ?> turnos creados esa semana (cupo automático: <?php echo (int) TURNOS_MAX_SEMANA; ?>)
+                          </p>
+                        <?php endif; ?>
 
                         <p><strong>Observaciones:</strong></p>
 
@@ -615,6 +703,10 @@ function badgeEstado($estado) {
                                      name="id"
                                      value="<?php echo $turno["id"]; ?>">
 
+                              <?php if ($vistaCanasta): ?>
+                                <input type="hidden" name="vista" value="canasta">
+                              <?php endif; ?>
+
                               <button type="submit"
                                       class="btn btn-gold">
                                 Confirmar
@@ -629,15 +721,19 @@ function badgeEstado($estado) {
 
                               <input type="hidden"
                                      name="accion"
-                                     value="cancelar">
+                                     value="<?php echo $esCanasta ? "rechazar" : "cancelar"; ?>">
 
                               <input type="hidden"
                                      name="id"
                                      value="<?php echo $turno["id"]; ?>">
 
+                              <?php if ($vistaCanasta): ?>
+                                <input type="hidden" name="vista" value="canasta">
+                              <?php endif; ?>
+
                               <button type="submit"
                                       class="btn admin-btn-danger">
-                                Cancelar
+                                <?php echo $esCanasta ? "Rechazar" : "Cancelar"; ?>
                               </button>
 
                             </form>
